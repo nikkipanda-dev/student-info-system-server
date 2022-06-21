@@ -20,5 +20,7 @@ Route::post("/login", [AuthController::class, "authenticate"]);
 Route::middleware(['auth:sanctum'])->group(function () {
     // Admin
     Route::post("/logout", [AuthController::class, "adminLogout"]);
+    Route::get("/admins", [AccountController::class, "adminGetAll"]);
     Route::post("/admin-register", [AccountController::class, "adminStore"]);
+    Route::post("/toggle-admin-status", [AccountController::class, "adminToggleStatus"]);
 });
