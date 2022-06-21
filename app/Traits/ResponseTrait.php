@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 trait ResponseTrait {
     public function successResponse($label, $data) {
@@ -29,5 +30,23 @@ trait ResponseTrait {
         ];
 
         return $responses[$data['type']];
+    }
+
+    public function getTokenId($bearerToken, $user) {
+        $isBearerTokenMatch = null;
+
+        preg_match("/^[^|]*/", $bearerToken, $matches);
+
+        foreach($user->tokens as $token) {
+            if (isset($matches[0]) && (intval($matches[0], 10) === intval($token->id, 10)) && ($token->tokenable_id === $user->id)) {
+                $isBearerTokenMatch = intval($token->id, 10);
+            }
+        }
+
+        return $isBearerTokenMatch;
+    }
+
+    public function revokeToken($tokenId, $user) {
+        $user->tokens()->where('id', $tokenId)->delete();
     }
 }

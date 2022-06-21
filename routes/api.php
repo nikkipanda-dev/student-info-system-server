@@ -17,5 +17,6 @@ use Illuminate\Support\Facades\Route;
 Route::post("/login", [AuthController::class, "authenticate"]);
 
 Route::middleware(['auth:sanctum'])->group(function () {
+    // Admin
     Route::post("/logout", [AuthController::class, "adminLogout"]);
 });
