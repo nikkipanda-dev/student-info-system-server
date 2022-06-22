@@ -25,4 +25,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("/admins", [AccountController::class, "adminGetAll"]);
     Route::post("/admin-register", [AccountController::class, "adminStore"]);
     Route::post("/toggle-admin-status", [AccountController::class, "adminToggleStatus"]);
+
+    // Student
+    Route::get("/students", [AccountController::class, "studentGetAll"]);
+    Route::post("/student-register", [AccountController::class, "studentStore"]);
 });

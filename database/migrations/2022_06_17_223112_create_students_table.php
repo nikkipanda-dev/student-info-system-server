@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('course');
             $table->string('year');
             $table->string('term');
+            $table->string('slug')->unique();
             $table->timestamps();
         });
     }

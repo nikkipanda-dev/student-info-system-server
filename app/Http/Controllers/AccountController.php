@@ -4,14 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Administrator;
+use App\Models\Student;
 use App\Traits\ResponseTrait;
 use App\Traits\AdminTrait;
+use App\Traits\RecordTrait;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class AccountController extends Controller
 {
-    use ResponseTrait, AdminTrait;
+    use ResponseTrait, AdminTrait, RecordTrait;
 
     public function adminStore(Request $request) {
         Log::info("Entering AccountController adminStore...\n");
@@ -52,6 +54,7 @@ class AccountController extends Controller
             $admin->last_name = $request->last_name;
             $admin->email = $request->email;
             $admin->password = Hash::make($request->password);
+            $admin->slug = $this->generateSlug('administrators');
 
             $admin->save();
 
@@ -148,6 +151,98 @@ class AccountController extends Controller
             return $this->successResponse("details", $user->is_admin);
         } catch (\Exception $e) {
             Log::error("Failed to remove as administrator. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    // Student
+    public function studentGetAll() {
+        Log::info("Entering AccountController studentGetAll...\n");
+
+        try {
+            $users = $this->getAllStudents();
+
+            if (count($users) === 0) {
+                Log::notice("No students yet.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'empty',
+                ]));
+            }
+
+            Log::info("Successfully retrieved students. Leaving AccountController studentGetAll...\n");
+            return $this->successResponse("details", $users);
+        } catch (\Exception $e) {
+            Log::error("Failed to retrieve students. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    public function studentStore(Request $request) {
+        Log::info("Entering AccountController studentStore...\n");
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+            'first_name' => 'bail|required|min:2|max:200',
+            'middle_name' => 'bail|nullable|min:2|max:200',
+            'last_name' => 'bail|required|min:2|max:200',
+            'student_number' => 'bail|required|string|min:2|max:200',
+            'course' => 'bail|required|in:bsit,bscs,bsis,bsba',
+            'year' => 'bail|required|regex:/^\d{4}$/',
+            'term' => 'bail|required|numeric|in:1,2,3',
+            'email' => 'bail|required|email',
+            'password' => 'bail|required',
+        ]);
+
+        try {
+            $user = Administrator::where('email', $request->auth_email)->first();
+
+            if (!($user)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $user);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            $student = new Student();
+
+            $student->first_name = $request->first_name;
+            $student->middle_name = $request->middle_name ?? '';
+            $student->last_name = $request->last_name;
+            $student->student_number = $request->student_number;
+            $student->course = $request->course;
+            $student->year = $request->year;
+            $student->term = $request->term;
+            $student->email = $request->email;
+            $student->password = Hash::make($request->password);
+            $student->slug = $this->generateSlug('students');
+
+            $student->save();
+
+            if (!($student)) {
+                Log::error("Failed to store new student.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            Log::info("Successfully stored new student ID " . $student->id . ". Leaving AccountController studentStore...\n");
+            return $this->successResponse("details", $student->refresh());
+        } catch (\Exception $e) {
+            Log::error("Failed to store new student. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
