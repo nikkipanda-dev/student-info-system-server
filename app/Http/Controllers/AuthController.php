@@ -94,6 +94,7 @@ class AuthController extends Controller
     }
 
     public function test(Request $request) {
+        Log::info("Entering test");
         return response('test ok', 200);
     }
 }
