@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::get("/test", [AuthController::class, "test"]);
+
 Route::post("/login", [AuthController::class, "authenticate"]);
 
 Route::middleware(['auth:sanctum'])->group(function () {
