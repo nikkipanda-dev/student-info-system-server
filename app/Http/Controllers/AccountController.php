@@ -181,6 +181,54 @@ class AccountController extends Controller
         }
     }
 
+    public function studentGet(Request $request) {
+        Log::info("Entering AccountController studentGet...\n");
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+            'slug' => 'bail|required|exists:students',
+        ]);
+
+        try {
+            $user = Administrator::where('email', $request->auth_email)->first();
+
+            if (!($user)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $user);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            $student = $this->getRecord("students", $request->slug);
+
+            if (!($student)) {
+                Log::notice("Student does not exist or might be deleted.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'student',
+                ]));
+            }
+
+            Log::info("Successfully retrieved student ID ".$student->id. ". Leaving AccountController studentGet...\n");
+            return $this->successResponse("details", $student);
+        } catch (\Exception $e) {
+            Log::error("Failed to retrieve student. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
     public function studentStore(Request $request) {
         Log::info("Entering AccountController studentStore...\n");
 

@@ -37,4 +37,24 @@ trait RecordTrait {
 
         return $slug;
     }
+
+    public function getRecord($model, $slug) {
+        Log::info("Entering RecordTrait getRecord...\n");
+
+        if (!($model) || !($slug)) {
+            Log::error("No data model and/or slug provided.\n");
+            return;
+        }
+
+        $models = [
+            "administrators" => Administrator::withTrashed()
+                                             ->where("slug", $slug)
+                                             ->first(),
+            "students" => Student::withTrashed()
+                                 ->where("slug", $slug)
+                                 ->first(),
+        ];
+
+        return $models[$model];
+    }
 }
