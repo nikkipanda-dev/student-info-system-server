@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,4 +35,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post("/student-display-photo-update", [AccountController::class, "studentDisplayPhotoUpdate"]);
     Route::post("/student-email-update", [AccountController::class, "studentEmailUpdate"]);
     Route::post("/student-password-update", [AccountController::class, "studentPasswordUpdate"]);
+
+    // Student payments
+    Route::get("/student-payments-get", [PaymentController::class, "studentPaymentGetAll"]);
+    Route::post("/student-payments-store", [PaymentController::class, "studentPaymentsStore"]);
+    Route::post("/student-payment-update", [PaymentController::class, "studentPaymentUpdate"]);
+    Route::post("/student-payment-destroy", [PaymentController::class, "studentPaymentDestroy"]);
 });
