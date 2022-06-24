@@ -10,4 +10,12 @@ use Laravel\Sanctum\HasApiTokens;
 class Student extends Model
 {
     use HasFactory, HasApiTokens, SoftDeletes;
+
+    public function studentPayments() {
+        return $this->hasMany(StudentPayment::class);
+    }
+
+    public function studentFiles() {
+        return $this->hasMany(StudentFile::class);
+    }
 }

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class StudentFile extends Model
+class StudentPayment extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -14,7 +14,7 @@ class StudentFile extends Model
         return $this->belongsTo(Student::class);
     }
 
-    public function studentPayment() {
-        return $this->belongsTo(StudentPayment::class);
+    public function studentFiles() {
+        return $this->hasMany(StudentFile::class);
     }
 }

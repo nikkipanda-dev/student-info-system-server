@@ -152,6 +152,9 @@ return [
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],
+        'date_paid' => [
+            'date_format' => "The date paid does not match the format YYYY-MM-DD.",
+        ]
     ],
 
     /*

@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Models\Administrator;
 use App\Models\Student;
 use App\Models\StudentFile;
+use App\Models\StudentPayment;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
@@ -33,6 +34,9 @@ trait RecordTrait {
                 "student-files" => StudentFile::withTrashed()
                                               ->where("slug", $slug)
                                               ->first(),
+                "student-payments" => StudentPayment::withTrashed()
+                                                    ->where("slug", $slug)
+                                                    ->first(),
             ];
 
             if (!($models[$model])) {
@@ -52,15 +56,10 @@ trait RecordTrait {
         }
 
         $models = [
-            "administrators" => Administrator::withTrashed()
-                                             ->where("slug", $slug)
-                                             ->first(),
-            "students" => Student::withTrashed()
-                                 ->where("slug", $slug)
-                                 ->first(),
-            "student-files" => StudentFile::withTrashed()
-                                          ->where("slug", $slug)
-                                          ->first(),
+            "administrators" => Administrator::where("slug", $slug)->first(),
+            "students" => Student::where("slug", $slug)->first(),
+            "student-files" => StudentFile::where("slug", $slug)->first(),
+            "student-payments" => StudentPayment::where("slug", $slug)->first(),
         ];
 
         return $models[$model];

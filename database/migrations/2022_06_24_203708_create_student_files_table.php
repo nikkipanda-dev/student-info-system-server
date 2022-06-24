@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('administrator_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('student_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignId('student_payment_id')->nullable()->constrained()->onUpdate('cascade')->onDelete('cascade');
             $table->string('disk');
             $table->string('type');
             $table->string('description');

@@ -249,7 +249,8 @@ class AccountController extends Controller
             'last_name' => 'bail|required|min:2|max:200',
             'student_number' => 'bail|required|string|min:2|max:200|unique:students',
             'course' => 'bail|required|in:bsit,bscs,bsis,bsba',
-            'year' => 'bail|required|regex:/^\d{4}$/',
+            // 'year' => 'bail|required|regex:/^\d{4}$/',
+            'year' => 'bail|required|numeric|in:1,2,3',
             'term' => 'bail|required|numeric|in:1,2,3',
             'email' => 'bail|required|email|unique:students',
             'password' => 'bail|required|string|min:8|max:20',
@@ -422,11 +423,16 @@ class AccountController extends Controller
 
             $file = StudentFile::latest()
                                ->where('student_id', $student->id)
+                               ->where('type', "display_photo")
                                ->first();
+
+            $filename = $this->generateSlug("student-files");
+            $disk = "digital_ocean";
 
             if ($file) {
                 $originalId = $file->getOriginal('id');
 
+                Storage::disk($disk)->setVisibility($file, 'private');
                 $file->delete();
 
                 if (StudentFile::find($originalId)) {
@@ -437,26 +443,14 @@ class AccountController extends Controller
                 }
             }
 
-            $filename = $this->generateSlug("student-files");
-            $disk = "digital_ocean";
-
-            $path = Storage::disk($disk)->putFileAs(
-                'display_photo',
-                $request->image,
-                $filename.".".$request->image->extension(),
+            $path = $request->image->storePubliclyAs(
+                'display_photos',
+                $filename . "." . $request->image->extension(),
+                $disk,
             );
 
             if (!($this->getFile($disk, $path))) {
                 Log::error("Failed to update student ID " . $student->id . "'s display photo. File was not saved to disk.\n");
-                return $this->errorResponse($this->getPredefinedResponse([
-                    'type' => 'default',
-                ]));
-            }
-
-            $isFilePublic = $this->setFilePublic($disk, $path);
-
-            if (!($isFilePublic)) {
-                Log::error("Failed to set student ID " . $student->id . "'s display photo as public.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'default',
                 ]));
