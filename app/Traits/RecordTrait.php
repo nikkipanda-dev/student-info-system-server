@@ -4,6 +4,8 @@ namespace App\Traits;
 
 use App\Models\Administrator;
 use App\Models\Student;
+use App\Models\StudentFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
 trait RecordTrait {
@@ -28,6 +30,9 @@ trait RecordTrait {
                 "students" => Student::withTrashed()
                                      ->where("slug", $slug)
                                      ->first(),
+                "student-files" => StudentFile::withTrashed()
+                                              ->where("slug", $slug)
+                                              ->first(),
             ];
 
             if (!($models[$model])) {
@@ -53,8 +58,43 @@ trait RecordTrait {
             "students" => Student::withTrashed()
                                  ->where("slug", $slug)
                                  ->first(),
+            "student-files" => StudentFile::withTrashed()
+                                          ->where("slug", $slug)
+                                          ->first(),
         ];
 
         return $models[$model];
+    }
+
+    public function setFilePublic($disk, $path) {
+        $isPublic = false;
+
+        Storage::disk($disk)->setVisibility($path, 'public');
+
+        if (Storage::disk($disk)->getVisibility($path) === "public") {
+            $isPublic = true;
+        }
+
+        return $isPublic;
+    }
+
+    public function getFile($disk, $path) {
+        $file = null;
+
+        if (Storage::disk($disk)->exists($path)) {
+            $file = Storage::disk($disk)->get($path);
+        }
+
+        return $file;
+    }
+
+    public function getFileUrl($disk, $path) {
+        $url = null;
+
+        if (Storage::disk($disk)->exists($path)) {
+            $url = Storage::disk($disk)->url($path);
+        }
+
+        return $url;
     }
 }
