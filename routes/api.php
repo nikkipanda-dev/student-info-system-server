@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CorController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +21,9 @@ use Illuminate\Support\Facades\Route;
 Route::get("/test", [AuthController::class, "test"]);
 
 Route::post("/login", [AuthController::class, "authenticate"]);
+
+// File
+Route::get("/student/file/download/{admin_slug}/{student_slug}/{file_slug}", [FileController::class, "studentFileDownload"]);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     // Admin
@@ -38,7 +43,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Student payments
     Route::get("/student-payments-get", [PaymentController::class, "studentPaymentGetAll"]);
-    Route::post("/student-payments-store", [PaymentController::class, "studentPaymentsStore"]);
+    Route::post("/student-payment-store", [PaymentController::class, "studentPaymentStore"]);
     Route::post("/student-payment-update", [PaymentController::class, "studentPaymentUpdate"]);
     Route::post("/student-payment-destroy", [PaymentController::class, "studentPaymentDestroy"]);
+
+    // Student certificate of registrations
+    Route::get("/student-cors-get", [CorController::class, "studentCorGetAll"]);
+    Route::post("/student-cor-store", [CorController::class, "studentCorStore"]);
+    Route::post("/student-cor-update", [CorController::class, "studentCorUpdate"]);
+    Route::post("/student-cor-destroy", [CorController::class, "studentCorDestroy"]);
 });

@@ -18,6 +18,50 @@ class AccountController extends Controller
 {
     use ResponseTrait, AdminTrait, RecordTrait;
 
+    public function adminGetAll(Request $request) {
+        Log::info("Entering AccountController adminGetAll...\n");
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+        ]);
+
+        try {
+            $user = Administrator::where('email', $request->auth_email)->first();
+
+            if (!($user)) {
+                Log::error("Administrator does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
+
+            if (!($user->is_super_admin)) {
+                Log::error("User is not flagged as a super admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $users = $this->getAllAdmins();
+
+            if (count($users) === 0) {
+                Log::notice("No administrators yet.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'empty',
+                ]));
+            }
+
+            Log::info("Successfully retrieved administrators. Leaving AccountController adminGetAll...\n");
+            return $this->successResponse("details", $users);
+        } catch (\Exception $e) {
+            Log::error("Failed to retrieve administrators. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
     public function adminStore(Request $request) {
         Log::info("Entering AccountController adminStore...\n");
 
@@ -51,6 +95,13 @@ class AccountController extends Controller
                 ]));
             }
 
+            if (!($user->is_super_admin)) {
+                Log::error("User is not flagged as a super admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
             $admin = new Administrator();
 
             $admin->first_name = $request->first_name;
@@ -69,33 +120,10 @@ class AccountController extends Controller
                 ]));
             }
 
-            Log::info("Successfully stored new administrator ID ".$admin->id. ". Leaving AccountController adminStore...\n");
+            Log::info("Successfully stored new administrator ID " . $admin->id . ". Leaving AccountController adminStore...\n");
             return $this->successResponse("details", $admin->refresh());
         } catch (\Exception $e) {
-            Log::error("Failed to store new administrator. ".$e->getMessage().".\n");
-            return $this->errorResponse($this->getPredefinedResponse([
-                'type' => 'default',
-            ]));
-        }
-    }
-
-    public function adminGetAll(Request $request) {
-        Log::info("Entering AccountController adminGetAll...\n");
-
-        try {
-            $users = $this->getAllAdmins();
-
-            if (count($users) === 0) {
-                Log::notice("No administrators yet.\n");
-                return $this->errorResponse($this->getPredefinedResponse([
-                    'type' => 'empty',
-                ]));
-            }
-
-            Log::info("Successfully retrieved administrators. Leaving AccountController adminGetAll...\n");
-            return $this->successResponse("details", $users);
-        } catch (\Exception $e) {
-            Log::error("Failed to retrieve administrators. " . $e->getMessage() . ".\n");
+            Log::error("Failed to store new administrator. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
@@ -132,9 +160,9 @@ class AccountController extends Controller
             }
 
             if (!($authUser->is_super_admin)) {
-                Log::error("Authenticated user is not super admin.\n");
+                Log::error("User is not flagged as a super admin.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
-                    'type' => 'default',
+                    'type' => 'unauth',
                 ]));
             }
 
@@ -213,6 +241,13 @@ class AccountController extends Controller
                 ]));
             }
 
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
             $student = $this->getRecord("students", $request->slug);
 
             if (!($student)) {
@@ -274,6 +309,13 @@ class AccountController extends Controller
                 Log::error("Bearer token is missing and/or user-token did not match.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 
@@ -349,6 +391,13 @@ class AccountController extends Controller
                 ]));
             }
 
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
             $student->first_name = $request->first_name;
 
             if ($request->middle_name) {
@@ -407,6 +456,13 @@ class AccountController extends Controller
                 ]));
             }
 
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
             if (!($request->hasFile('image'))) {
                 Log::error("File does not exist.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
@@ -430,17 +486,18 @@ class AccountController extends Controller
             $disk = "digital_ocean";
 
             if ($file) {
-                $originalId = $file->getOriginal('id');
+                $originalRecord = $file->getOriginal();
 
-                Storage::disk($disk)->setVisibility($file, 'private');
                 $file->delete();
 
-                if (StudentFile::find($originalId)) {
+                if (StudentFile::find($originalRecord['id'])) {
                     Log::error("Failed to update student ID ".$student->id."'s display photo.\n");
                     return $this->errorResponse($this->getPredefinedResponse([
                         'type' => 'default',
                     ]));
                 }
+
+                Storage::disk($originalRecord['disk'])->setVisibility($originalRecord['path'], 'private');
             }
 
             $path = $request->image->storePubliclyAs(
@@ -533,6 +590,13 @@ class AccountController extends Controller
                 ]));
             }
 
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
             $student->email = $request->email;
 
             $student->save();
@@ -583,6 +647,13 @@ class AccountController extends Controller
                 Log::error("Bearer token is missing and/or user-token did not match.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 
