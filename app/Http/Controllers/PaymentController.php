@@ -344,8 +344,8 @@ class PaymentController extends Controller
                 ]));
             }
 
-            if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+            if (!($user->is_super_admin)) {
+                Log::error("User is not flagged as a super admin.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
