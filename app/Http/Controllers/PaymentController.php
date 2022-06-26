@@ -27,13 +27,29 @@ class PaymentController extends Controller
         ]);
 
         try {
+            $authUser = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord("students", $request->slug);
+
+            if (!($authUser)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
 
             if (!($student)) {
                 Log::notice("Student does not exist or might be deleted.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'student',
+                ]));
+            }
+
+            if (!($authUser->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 

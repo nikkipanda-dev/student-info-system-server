@@ -24,13 +24,29 @@ class CorController extends Controller
         ]);
 
         try {
+            $authUser = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord("students", $request->slug);
+
+            if (!($authUser)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
 
             if (!($student)) {
                 Log::notice("Student does not exist or might be deleted.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'student',
+                ]));
+            }
+
+            if (!($authUser->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 
@@ -94,6 +110,13 @@ class CorController extends Controller
                 Log::error("Bearer token is missing and/or user-token did not match.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 
@@ -198,6 +221,13 @@ class CorController extends Controller
                 Log::error("Bearer token is missing and/or user-token did not match.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 
@@ -325,6 +355,13 @@ class CorController extends Controller
                 Log::error("Bearer token is missing and/or user-token did not match.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 

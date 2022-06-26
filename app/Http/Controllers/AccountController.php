@@ -190,10 +190,31 @@ class AccountController extends Controller
     }
 
     // Student
-    public function studentGetAll() {
+    public function studentGetAll(Request $request) {
         Log::info("Entering AccountController studentGetAll...\n");
 
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+        ]);
+
         try {
+            $authUser = Administrator::where('email', $request->auth_email)->first();
+
+            if (!($authUser)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
+
+            if (!($authUser->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
             $users = $this->getAllStudents();
 
             if (count($users) === 0) {
