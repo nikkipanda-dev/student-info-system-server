@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CorController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PermitController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -52,4 +53,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post("/student-cor-store", [CorController::class, "studentCorStore"]);
     Route::post("/student-cor-update", [CorController::class, "studentCorUpdate"]);
     Route::post("/student-cor-destroy", [CorController::class, "studentCorDestroy"]);
+
+    // Student permits
+    Route::get("/student-permits-get", [PermitController::class, "studentPermitGetAll"]);
+    Route::post("/student-permit-store", [PermitController::class, "studentPermitStore"]);
+    Route::post("/student-permit-update", [PermitController::class, "studentPermitUpdate"]);
+    Route::post("/student-permit-destroy", [PermitController::class, "studentPermitDestroy"]);
 });
