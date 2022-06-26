@@ -28,6 +28,7 @@ trait ResponseTrait {
             "not-found" => Str::ucfirst(isset($data['content']) ? $data['content'] : '')." does not exist or might be deleted.",
             "incorrect-pw" => "Password is incorrect. Please try again.",
             "empty" => "No data to show",
+            "unauth" => "You do not have permission to access this content.",
             "not-changed" => Str::ucfirst(isset($data['content']) ? $data['content'] : '')." was not changed.",
         ];
 

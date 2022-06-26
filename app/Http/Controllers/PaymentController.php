@@ -8,6 +8,7 @@ use App\Models\StudentFile;
 use App\Models\StudentPayment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use App\Traits\RecordTrait;
 use App\Traits\ResponseTrait;
 use Exception;
@@ -26,13 +27,29 @@ class PaymentController extends Controller
         ]);
 
         try {
+            $authUser = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord("students", $request->slug);
+
+            if (!($authUser)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
 
             if (!($student)) {
                 Log::notice("Student does not exist or might be deleted.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'student',
+                ]));
+            }
+
+            if (!($authUser->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 
@@ -55,8 +72,8 @@ class PaymentController extends Controller
         }
     }
 
-    public function studentPaymentsStore(Request $request) {
-        Log::info("Entering AccountController studentPaymentsStore...\n");
+    public function studentPaymentStore(Request $request) {
+        Log::info("Entering AccountController studentPaymentStore...\n");
 
         $this->validate($request, [
             'auth_email' => 'bail|required|exists:administrators,email',
@@ -66,9 +83,6 @@ class PaymentController extends Controller
             'date_paid' => 'bail|required|date_format:Y-m-d|before_or_equal:'.now(),
             'amount_paid' => 'bail|required|numeric|min:2|max:100000',
             'balance' => 'bail|nullable|numeric|min:2|max:100000',
-            'course' => 'bail|required|in:bsit,bscs,bsis,bsba',
-            'year' => 'bail|required|regex:/^\d{4}$/',
-            'term' => 'bail|required|numeric|in:1,2,3',
             'payments' => 'bail|required|array|min:1',
             'status' => 'bail|required|in:pending,verified',
         ]);
@@ -99,6 +113,13 @@ class PaymentController extends Controller
                 Log::error("Bearer token is missing and/or user-token did not match.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 
@@ -153,53 +174,51 @@ class PaymentController extends Controller
                         break;
                     }
 
-                    if ($payment->isValid()) {
-                        $filename = $this->generateSlug("student-files");
+                    $filename = $this->generateSlug("student-files");
 
-                        $path = $payment->storePubliclyAs(
-                            'payments',
-                            $filename.".". $payment->extension(),
-                            $disk,
-                        );
+                    $path = $payment->storePubliclyAs(
+                        'payments',
+                        $filename.".". $payment->extension(),
+                        $disk,
+                    );
 
-                        if (!($this->getFile($disk, $path))) {
-                            Log::error("Failed to store student ID " . $student->id . "'s payment. File was not saved to disk.\n");
-                            $errorText = $this->getPredefinedResponse([
-                                'type' => 'default',
-                            ]);
+                    if (!($this->getFile($disk, $path))) {
+                        Log::error("Failed to store student ID " . $student->id . "'s payment. File was not saved to disk.\n");
+                        $errorText = $this->getPredefinedResponse([
+                            'type' => 'default',
+                        ]);
 
-                            break;
-                        }
-
-                        $file = new StudentFile();
-
-                        $file->administrator_id = $user->id;
-                        $file->student_id = $student->id;
-                        $file->student_payment_id = $newPayment->id;
-                        $file->disk = $disk;
-                        $file->type = "payment";
-                        $file->description = '';
-                        $file->path = $path;
-                        $file->extension = $payment->extension();
-                        $file->course = $student->course;
-                        $file->year = $student->year;
-                        $file->term = $student->term;
-                        $file->slug = $filename;
-
-                        $file->save();
-
-                        if (!($file)) {
-                            Log::error("Failed to store student ID " . $student->id . "'s payment file details.\n");
-                            $errorText = $this->errorResponse($this->getPredefinedResponse([
-                                'type' => 'default',
-                            ]));
-
-                            break;
-                        }
-
-                        $array[] = $this->getFileUrl($disk, $path);
-                        $isValid = true;
+                        break;
                     }
+
+                    $file = new StudentFile();
+
+                    $file->administrator_id = $user->id;
+                    $file->student_id = $student->id;
+                    $file->student_payment_id = $newPayment->id;
+                    $file->disk = $disk;
+                    $file->type = "payment";
+                    $file->description = '';
+                    $file->path = $path;
+                    $file->extension = $payment->extension();
+                    $file->course = $student->course;
+                    $file->year = $student->year;
+                    $file->term = $student->term;
+                    $file->slug = $filename;
+
+                    $file->save();
+
+                    if (!($file)) {
+                        Log::error("Failed to store student ID " . $student->id . "'s payment file details.\n");
+                        $errorText = $this->errorResponse($this->getPredefinedResponse([
+                            'type' => 'default',
+                        ]));
+
+                        break;
+                    }
+
+                    $array[] = $this->getFileUrl($disk, $path);
+                    $isValid = true;
                 }
 
                 return [
@@ -215,7 +234,7 @@ class PaymentController extends Controller
                 ]));
             }
 
-            Log::info("Successfully stored student ID " . $student->id . "'s payments. Leaving AccountController studentPaymentsStore...\n");
+            Log::info("Successfully stored student ID " . $student->id . "'s payments. Leaving AccountController studentPaymentStore...\n");
             return $this->successResponse("details", $newPayment);
         } catch (\Exception $e) {
             Log::error("Failed to store student's payments. " . $e->getMessage() . ".\n");
@@ -261,6 +280,13 @@ class PaymentController extends Controller
                 Log::error("Bearer token is missing and/or user-token did not match.\n");
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
                 ]));
             }
 
@@ -318,7 +344,14 @@ class PaymentController extends Controller
                 ]));
             }
 
-            $payment = $this->getRecord("student-payments", $request->slug);
+            if (!($user->is_super_admin)) {
+                Log::error("User is not flagged as a super admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $payment = StudentPayment::with("studentFiles")->where('slug', $request->slug)->first();
 
             if (!($payment)) {
                 Log::error("Payment does not exist or might be deleted.\n");
@@ -327,19 +360,72 @@ class PaymentController extends Controller
                 ]));
             }
 
-            $originalPayment = $payment->getOriginal();
-            $payment->delete();
+            $transactionResponse = DB::transaction(function () use($payment) {
+                $isValid = null;
+                $errorText = '';
+                $originalPayment = $payment->getOriginal();
 
-            if (StudentPayment::find($originalPayment['id'])) {
+                // Soft delete each student's payment file
+                foreach ($payment->studentFiles as $file) {
+                    $isValid = false;
+                    $errorText = '';
+
+                    $originalFile = $file->getOriginal();
+                    $file->delete();
+
+                    if (StudentFile::find($originalFile['id'])) {
+                        Log::error("Failed to soft delete student's payment file ID " . $originalFile['id'] . ". Student payment file still exists.\n");
+                        $errorText = $this->getPredefinedResponse([
+                            'type' => 'default',
+                        ]);
+
+                        break;
+                    }
+
+                    Storage::disk($originalFile['disk'])->setVisibility($originalFile['path'], 'private');
+
+                    $isValid = true;
+                    Log::info("Soft deleted student payment file ID " . $originalFile['id'] . ".\n");
+                }
+
+                if (!($isValid)) {
+                    $errorText = $this->getPredefinedResponse([
+                        'type' => 'default',
+                    ]);
+
+                    throw new Exception("Failed to soft delete student's payment file ID " . $originalFile['id'] . ". Unable to soft delete one of the payment files.\n");
+                } else {
+                    // Soft delete payment if db transaction is successful
+                    $payment->delete();
+
+                    if (StudentPayment::find($originalPayment['id'])) {
+                        $isValid = false;
+                        return $this->getPredefinedResponse([
+                            'type' => 'default',
+                        ]);
+
+                        throw new Exception("Failed to soft delete student's payment ID ".$originalPayment['id'].".\n");
+                    }
+
+                    $isValid = true;
+                    Log::info("Soft deleted student payment file ID " . $originalPayment['id'] . ".\n");
+                }
+
+                return [
+                    "is_valid" => $isValid,
+                    "error_text" => $errorText,
+                    "payment" => $originalPayment,
+                ];
+            }, 3);
+
+            if (!($transactionResponse['is_valid'])) {
                 Log::error("Failed to soft delete student's payment.\n");
-                return $this->errorResponse($this->getPredefinedResponse([
-                    'type' => 'default',
-                ]));
+                return $this->errorResponse($transactionResponse['error_text']);
             }
 
             Log::info("Successfully soft deleted student ID " . $student->id . "'s payment. Leaving PaymentController studentPaymentDestroy...\n");
             return $this->successResponse("details", [
-                'slug' => $originalPayment['slug'],
+                'slug' => $transactionResponse['payment']['slug'],
             ]);
         } catch (\Exception $e) {
             Log::error("Failed to soft delete student's payment. " . $e->getMessage() . ".\n");
