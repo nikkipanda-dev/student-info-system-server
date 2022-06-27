@@ -13,20 +13,16 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('student_files', function (Blueprint $table) {
+        Schema::create('student_registrar_files', function (Blueprint $table) {
             $table->id();
             $table->foreignId('administrator_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
             $table->foreignId('student_id')->constrained()->onUpdate('cascade')->onDelete('cascade');
-            $table->foreignId('student_payment_id')->nullable()->constrained()->onUpdate('cascade')->onDelete('cascade');
-            $table->string('disk');
-            $table->string('type');
-            $table->string('description');
-            $table->string('path');
-            $table->string('extension');
-            $table->string('year');
+            $table->text('description');
             $table->string('course');
+            $table->string('year');
             $table->string('term');
             $table->string('slug')->unique();
+            $table->string('status');
             $table->timestamps();
         });
     }
@@ -38,6 +34,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('student_files');
+        Schema::dropIfExists('student_registrar_files');
     }
 };

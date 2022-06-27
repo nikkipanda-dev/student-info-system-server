@@ -6,6 +6,7 @@ use App\Models\Administrator;
 use App\Models\Student;
 use App\Models\StudentFile;
 use App\Models\StudentPayment;
+use App\Models\StudentRegistrarFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +38,9 @@ trait RecordTrait {
                 "student-payments" => StudentPayment::withTrashed()
                                                     ->where("slug", $slug)
                                                     ->first(),
+                "student-registrar-files" => StudentRegistrarFile::withTrashed()
+                                                                 ->where("slug", $slug)
+                                                                 ->first(),
             ];
 
             if (!($models[$model])) {
@@ -60,6 +64,7 @@ trait RecordTrait {
             "students" => Student::where("slug", $slug)->first(),
             "student-files" => StudentFile::where("slug", $slug)->first(),
             "student-payments" => StudentPayment::where("slug", $slug)->first(),
+            "student-registrar-files" => StudentRegistrarFile::where("slug", $slug)->first(),
         ];
 
         return $models[$model];

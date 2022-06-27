@@ -364,6 +364,7 @@ class PaymentController extends Controller
                 $isValid = null;
                 $errorText = '';
                 $originalPayment = $payment->getOriginal();
+                $originalFile = '';
 
                 // Soft delete each student's payment file
                 foreach ($payment->studentFiles as $file) {
@@ -374,7 +375,7 @@ class PaymentController extends Controller
                     $file->delete();
 
                     if (StudentFile::find($originalFile['id'])) {
-                        Log::error("Failed to soft delete student's payment file ID " . $originalFile['id'] . ". Student payment file still exists.\n");
+                        Log::error("Failed to soft delete student's file ID " . $originalFile['id'] . ". Student file still exists.\n");
                         $errorText = $this->getPredefinedResponse([
                             'type' => 'default',
                         ]);
@@ -385,7 +386,7 @@ class PaymentController extends Controller
                     Storage::disk($originalFile['disk'])->setVisibility($originalFile['path'], 'private');
 
                     $isValid = true;
-                    Log::info("Soft deleted student payment file ID " . $originalFile['id'] . ".\n");
+                    Log::info("Soft deleted student file ID " . $originalFile['id'] . ".\n");
                 }
 
                 if (!($isValid)) {
@@ -393,9 +394,9 @@ class PaymentController extends Controller
                         'type' => 'default',
                     ]);
 
-                    throw new Exception("Failed to soft delete student's payment file ID " . $originalFile['id'] . ". Unable to soft delete one of the payment files.\n");
+                    throw new Exception("Failed to soft delete student file ID " . $originalFile['id'] . ". Unable to soft delete one of the files.\n");
                 } else {
-                    // Soft delete payment if db transaction is successful
+                    // Soft delete payment if valid
                     $payment->delete();
 
                     if (StudentPayment::find($originalPayment['id'])) {
