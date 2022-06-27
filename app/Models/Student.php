@@ -18,4 +18,8 @@ class Student extends Model
     public function studentFiles() {
         return $this->hasMany(StudentFile::class);
     }
+
+    public function studentRegistrarFiles() {
+        return $this->hasMany(StudentRegistrarFile::class);
+    }
 }

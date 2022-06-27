@@ -6,6 +6,7 @@ use App\Http\Controllers\CorController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PermitController;
+use App\Http\Controllers\RegistrarFileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -59,4 +60,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post("/student-permit-store", [PermitController::class, "studentPermitStore"]);
     Route::post("/student-permit-update", [PermitController::class, "studentPermitUpdate"]);
     Route::post("/student-permit-destroy", [PermitController::class, "studentPermitDestroy"]);
+
+    // Student registrar files
+    Route::get("/student-registrar-files-get", [RegistrarFileController::class, "studentRegistrarFileGetAll"]);
+    Route::post("/student-registrar-file-store", [RegistrarFileController::class, "studentRegistrarFileStore"]);
+    Route::post("/student-registrar-file-update", [RegistrarFileController::class, "studentRegistrarFileUpdate"]);
+    Route::post("/student-registrar-file-destroy", [RegistrarFileController::class, "studentRegistrarFileDestroy"]);
 });
