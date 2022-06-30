@@ -33,6 +33,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("/admins", [AccountController::class, "adminGetAll"]);
     Route::post("/admin-register", [AccountController::class, "adminStore"]);
     Route::post("/toggle-admin-status", [AccountController::class, "adminToggleStatus"]);
+    Route::post("/admin-name-update", [AccountController::class, "adminNameUpdate"]);
+    Route::post("/admin-email-update", [AccountController::class, "adminEmailUpdate"]);
+    Route::post("/admin-password-update", [AccountController::class, "adminPasswordUpdate"]);
 
     // Student
     Route::get("/students", [AccountController::class, "studentGetAll"]);
