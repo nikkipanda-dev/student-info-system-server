@@ -33,6 +33,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("/admins", [AccountController::class, "adminGetAll"]);
     Route::post("/admin-register", [AccountController::class, "adminStore"]);
     Route::post("/toggle-admin-status", [AccountController::class, "adminToggleStatus"]);
+    Route::post("/admin-name-update", [AccountController::class, "adminNameUpdate"]);
+    Route::post("/admin-email-update", [AccountController::class, "adminEmailUpdate"]);
+    Route::post("/admin-password-update", [AccountController::class, "adminPasswordUpdate"]);
+
+    // Admin and student
+    Route::post("/name-update", [AccountController::class, "nameUpdate"]);
+    Route::post("/email-update", [AccountController::class, "emailUpdate"]);
+    Route::post("/password-update", [AccountController::class, "passwordUpdate"]);
 
     // Student
     Route::get("/students", [AccountController::class, "studentGetAll"]);

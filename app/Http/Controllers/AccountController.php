@@ -189,6 +189,178 @@ class AccountController extends Controller
         }
     }
 
+    public function adminNameUpdate(Request $request) {
+        Log::info("Entering AccountController adminNameUpdate...\n");
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+            'slug' => 'bail|required|exists:administrators',
+            'first_name' => 'bail|nullable|min:2|max:200',
+            'middle_name' => 'bail|nullable|min:2|max:200',
+            'last_name' => 'bail|nullable|min:2|max:200',
+        ]);
+
+        try {
+            $authUser = Administrator::where('email', $request->auth_email)->first();
+            $admin = $this->getRecord('administrators', $request->slug);
+
+            if (!($authUser) || !($admin)) {
+                Log::error("Administrator does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'administrator',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $authUser);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            if (!($authUser->is_super_admin)) {
+                Log::error("User is not flagged as a super admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $admin->first_name = $request->first_name ?? $admin->first_name;
+            $admin->middle_name = $request->middle_name;
+            $admin->last_name = $request->last_name ?? $admin->last_name;
+
+            $admin->save();
+
+            Log::info("Successfully updated administrator ID " . $admin->id . "'s name. Leaving AccountController adminNameUpdate...\n");
+            return $this->successResponse("details", $admin->only(['first_name', 'middle_name', 'last_name']));
+        } catch (\Exception $e) {
+            Log::error("Failed to update administrator's name. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    public function adminEmailUpdate(Request $request) {
+        Log::info("Entering AccountController adminEmailUpdate...\n");
+
+        $admin = $this->getRecord('administrators', $request->slug);
+
+        if (!($admin)) {
+            Log::error("Administrator does not exist on our system.\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'not-found',
+                'content' => 'administrator',
+            ]));
+        }
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+            'slug' => 'bail|required|exists:administrators',
+            'email' => [
+                'bail',
+                'required',
+                'email',
+                Rule::unique('administrators')->ignore($admin),
+            ],
+        ]);
+
+        try {
+            $authUser = Administrator::where('email', $request->auth_email)->first();
+
+            if (!($authUser)) {
+                Log::error("Administrator does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'administrator',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $authUser);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            if (!($authUser->is_super_admin)) {
+                Log::error("User is not flagged as a super admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $admin->email = $request->email;
+
+            $admin->save();
+
+            Log::info("Successfully updated administrator ID " . $admin->id . "'s email address. Leaving AccountController adminEmailUpdate...\n");
+            return $this->successResponse("details", $admin->email);
+        } catch (\Exception $e) {
+            Log::error("Failed to update administrator's email address. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    public function adminPasswordUpdate(Request $request) {
+        Log::info("Entering AccountController adminPasswordUpdate...\n");
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+            'slug' => 'bail|required|exists:administrators',
+            'password' => 'bail|required|string|min:8|max:20',
+            'password_confirmation' => 'bail|required',
+        ]);
+
+        try {
+            $authUser = Administrator::where('email', $request->auth_email)->first();
+            $admin = $this->getRecord('administrators', $request->slug);
+
+            if (!($authUser) || !($admin)) {
+                Log::error("Administrator does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'administrator',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $authUser);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            if (!($authUser->is_super_admin)) {
+                Log::error("User is not flagged as a super admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $admin->password = Hash::make($request->password);
+
+            $admin->save();
+
+            Log::info("Successfully updated administrator ID " . $admin->id . "'s password. Leaving AccountController studentPasswordUpdate...\n");
+            return $this->successResponse("details", $admin->only(['first_name', 'middle_name', 'last_name']));
+        } catch (\Exception $e) {
+            Log::error("Failed to update administrator's password. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
     // Student
     public function studentGetAll(Request $request) {
         Log::info("Entering AccountController studentGetAll...\n");
@@ -378,9 +550,9 @@ class AccountController extends Controller
         $this->validate($request, [
             'auth_email' => 'bail|required|exists:administrators,email',
             'slug' => 'bail|required|exists:students',
-            'first_name' => 'bail|required|min:2|max:200',
+            'first_name' => 'bail|nullable|min:2|max:200',
             'middle_name' => 'bail|nullable|min:2|max:200',
-            'last_name' => 'bail|required|min:2|max:200',
+            'last_name' => 'bail|nullable|min:2|max:200',
         ]);
 
         try {
@@ -419,13 +591,9 @@ class AccountController extends Controller
                 ]));
             }
 
-            $student->first_name = $request->first_name;
-
-            if ($request->middle_name) {
-                $student->middle_name = $request->middle_name;
-            }
-
-            $student->last_name = $request->last_name;
+            $student->first_name = $request->first_name ?? $student->first_name;
+            $student->middle_name = $request->middle_name;
+            $student->last_name = $request->last_name ?? $student->last_name;
 
             $student->save();
 
@@ -686,6 +854,210 @@ class AccountController extends Controller
             return $this->successResponse("details", $student->only(['first_name', 'middle_name', 'last_name']));
         } catch (\Exception $e) {
             Log::error("Failed to update student's password. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    // Authenticated user
+    public function nameUpdate(Request $request) {
+        Log::info("Entering AccountController nameUpdate...\n");
+
+        $this->validate($request, [
+            'slug' => [
+                'bail',
+                'required',
+                'regex:/^[^\s\[\]\.\|@\^\\\$\?\*\+\(\)\{\}~!#%&`]+?$/',
+            ],
+            'first_name' => 'bail|nullable|min:2|max:200',
+            'middle_name' => 'bail|nullable|min:2|max:200',
+            'last_name' => 'bail|nullable|min:2|max:200',
+        ]);
+
+        try {
+            $admin = $this->getRecord('administrators', $request->slug);
+            $student = $this->getRecord('students', $request->slug);
+            $user = null;
+
+            if (!($admin)) {
+                Log::notice("Administrator does not exist on our system.\n");
+            }
+
+            if (!($student)) {
+                Log::notice("Student does not exist on our system.\n");
+            }
+
+            $user = $admin ? $admin : $student;
+
+            if (!($user)) {
+                Log::notice("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $user);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            $user->first_name = $request->first_name ?? $user->first_name;
+            $user->middle_name = $request->middle_name;
+            $user->last_name = $request->last_name ?? $user->last_name;
+
+            $user->save();
+
+            Log::info("Successfully updated authenticated user ID " . $user->id . "'s name. Leaving AccountController nameUpdate...\n");
+            return $this->successResponse("details", $user->only(['first_name', 'middle_name', 'last_name']));
+        } catch (\Exception $e) {
+            Log::error("Failed to update authenticated user's name. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    public function emailUpdate(Request $request) {
+        Log::info("Entering AccountController emailUpdate...\n");
+
+        if (!(preg_match('/^[^\s\[\]\.\|@\^\\\$\?\*\+\(\)\{\}~!#%&`]+?$/', $request->slug))) {
+            Log::notice("Slug did not match regex.\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+
+        $admin = $this->getRecord('administrators', $request->slug);
+        $student = $this->getRecord('students', $request->slug);
+        $user = null;
+
+        if (!($admin)) {
+            Log::notice("Administrator does not exist on our system.\n");
+        }
+
+        if (!($student)) {
+            Log::notice("Student does not exist on our system.\n");
+        }
+
+        $user = $admin ? $admin : $student;
+
+        if (!($user)) {
+            Log::notice("User does not exist on our system.\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'not-found',
+                'content' => 'user',
+            ]));
+        }
+
+        $dataModel = $admin ? "administrators" : "students";
+
+        $this->validate($request, [
+            'email' => [
+                'bail',
+                'required',
+                'email',
+                Rule::unique($dataModel)->ignore($user),
+            ],
+        ]);
+
+        try {
+            $tokenId = $this->getTokenId($request->bearerToken(), $user);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            $user->email = $request->email;
+
+            $user->save();
+
+            Log::info("Successfully updated authenticated user ID " . $user->id . "'s email address. Leaving AccountController emailUpdate...\n");
+            return $this->successResponse("details", $user->email);
+        } catch (\Exception $e) {
+            Log::error("Failed to update authenticated user's email address. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    public function passwordUpdate(Request $request) {
+        Log::info("Entering AccountController passwordUpdate...\n");
+
+        $this->validate($request, [
+            'slug' => [
+                'bail',
+                'required',
+                'regex:/^[^\s\[\]\.\|@\^\\\$\?\*\+\(\)\{\}~!#%&`]+?$/',
+            ],
+            'current_password' => 'bail|required',
+            'password' => 'bail|required|string|min:8|max:20',
+            'password_confirmation' => 'bail|required',
+        ]);
+
+        try {            
+            $admin = $this->getRecord('administrators', $request->slug);
+            $student = $this->getRecord('students', $request->slug);
+            $user = null;
+
+            if (!($admin)) {
+                Log::notice("Administrator does not exist on our system.\n");
+            }
+
+            if (!($student)) {
+                Log::notice("Student does not exist on our system.\n");
+            }
+
+            $user = $admin ? $admin : $student;
+
+            if (!($user)) {
+                Log::notice("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'user',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $user);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            if (!(Hash::check($request->current_password, $user->password))) {
+                Log::error("Current password is incorrect.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            $user->password = Hash::make($request->password);
+
+            $user->save();
+
+            Log::info("Successfully updated authenticated user ID " . $user->id . "'s password. Leaving AccountController passwordUpdate...\n");
+
+            // revoke all tokens and re-issue a new one
+            $user->tokens()->delete();
+            $token = $user->createToken('auth_admin_token')->plainTextToken;
+
+            return $this->successResponse("details", [
+                'token' => $token,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to update authenticated user's password. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
