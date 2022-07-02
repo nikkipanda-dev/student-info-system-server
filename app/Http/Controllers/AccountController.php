@@ -12,7 +12,6 @@ use App\Traits\AdminTrait;
 use App\Traits\RecordTrait;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Validation\Rule;
 
 class AccountController extends Controller
