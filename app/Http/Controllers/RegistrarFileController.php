@@ -63,8 +63,29 @@ class RegistrarFileController extends Controller
                 ]));
             }
 
+            $formattedArr = [];
+            foreach ($registrarFiles as $registrarFile) {
+                $files = [];
+
+                $ctr = 0;
+                foreach ($registrarFile->studentFiles as $file) {
+                    ++$ctr;
+
+                    $files[] = [
+                        'id' => $ctr,
+                        'path' => Storage::disk($file->disk)->url($file->path) ?? '',
+                        'slug' => $file->slug,
+                    ];
+                }
+
+                $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
+                $registrarFile = $this->unsetFromArray($registrarFile, $keys);
+                $registrarFile['files'] = $files;
+                $formattedArr[] = $registrarFile;
+            }
+
             Log::info("Successfully retrieved student's registrar files. Leaving RegistrarFileController studentRegistrarFileGetAll...\n");
-            return $this->successResponse("details", $registrarFiles);
+            return $this->successResponse("details", $formattedArr);
         } catch (\Exception $e) {
             Log::error("Failed to retrieve student's registrar files. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
@@ -417,8 +438,30 @@ class RegistrarFileController extends Controller
                 }
             }
 
+            $registrarFile->refresh();
+
+            Log::info($registrarFile);
+
+            foreach ($registrarFile->studentFiles as $file) {
+                $files[] = [
+                    'id' => 1,
+                    'path' => Storage::disk($file->disk)->url($file->path) ?? '',
+                    'slug' => $file->slug,
+                ];
+                $registrarFile['files'] = $files;
+            }
+
+            $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
+            $registrarFile = $this->unsetFromArray($registrarFile, $keys);
+
+            Log::info($registrarFile);
+
             Log::info("Successfully updated student ID " . $student->id . "'s registrar file. Leaving RegistrarFileController studentRegistrarFileUpdate...\n");
-            return $this->successResponse("details", $registrarFile->only(['description', 'status']));
+            return $this->successResponse("details", [
+                'description' => $registrarFile['description'],
+                'status' => $registrarFile['status'],
+                'files' => $registrarFile['files'],
+            ]);
         } catch (\Exception $e) {
             Log::error("Failed to update student's registrar file. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([

@@ -60,12 +60,40 @@ class PermitController extends Controller
                 ]));
             }
 
+            $formattedArr = [];
+            $ctr = 0;
             foreach ($permits as $permit) {
-                $permit['path'] = Storage::disk($permit->disk)->url($permit->path) ?? '';
+                $files = [];
+
+                ++$ctr;
+
+                $keys = [
+                    'id',
+                    'disk',
+                    'extension',
+                    'description',
+                    'student_payment_id',
+                    'student_registrar_file_id',
+                    'updated_at',
+                    'deleted_at',
+                    'administrator_id',
+                    'student_id',
+                    'student_files'
+                ];
+
+                $files[] = [
+                    'id' => $ctr,
+                    'path' => Storage::disk($permit->disk)->url($permit->path) ?? '',
+                    'slug' => $permit->slug,
+                ];
+
+                $permit['file'] = $files;
+                $permit = $this->unsetFromArray($permit, $keys);
+                $formattedArr[] = $permit;
             }
 
             Log::info("Successfully retrieved student's permits. Leaving PermitController studentPermitGetAll...\n");
-            return $this->successResponse("details", $permits);
+            return $this->successResponse("details", $formattedArr);
         } catch (\Exception $e) {
             Log::error("Failed to retrieve student's permits. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
@@ -301,17 +329,34 @@ class PermitController extends Controller
 
             $permit->save();
 
-            if (!($permit)) {
-                Log::error("Failed to update student's permit.\n");
-                return $this->errorResponse($this->getPredefinedResponse([
-                    'type' => 'default',
-                ]));
-            }
+            $files[] = [
+                'id' => 1,
+                'path' => Storage::disk($permit->disk)->url($permit->path) ?? '',
+                'slug' => $permit->slug,
+            ];
 
-            $permit['path'] = Storage::disk($permit->disk)->url($permit->path) ?? '';
+            $keys = [
+                'id',
+                'disk',
+                'extension',
+                'description',
+                'student_payment_id',
+                'student_registrar_file_id',
+                'updated_at',
+                'deleted_at',
+                'administrator_id',
+                'student_id',
+                'student_files',
+            ];
+
+            $permit['file'] = $files;
+            $permit = $this->unsetFromArray($permit, $keys);
 
             Log::info("Successfully updated student ID " . $student->id . "'s permit. Leaving PermitController studentPermitUpdate...\n");
-            return $this->successResponse("details", $permit);
+            return $this->successResponse("details", [
+                'slug' => $permit['slug'],
+                'file' => $permit['file'],
+            ]);
         } catch (\Exception $e) {
             Log::error("Failed to update student's permit. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
