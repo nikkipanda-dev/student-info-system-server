@@ -255,6 +255,21 @@ class PaymentController extends Controller
                 ]));
             }
 
+            $ctr = 0;
+            foreach ($newPayment->studentFiles as $file) {
+                ++$ctr;
+
+                $files[] = [
+                    'id' => $ctr,
+                    'path' => Storage::disk($file->disk)->url($file->path) ?? '',
+                    'slug' => $file->slug,
+                ];
+                $newPayment['files'] = $files;
+            }
+
+            $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
+            $newPayment = $this->unsetFromArray($newPayment, $keys);
+
             Log::info("Successfully stored student ID " . $student->id . "'s payments. Leaving AccountController studentPaymentStore...\n");
             return $this->successResponse("details", $newPayment);
         } catch (\Exception $e) {
