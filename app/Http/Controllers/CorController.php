@@ -201,7 +201,28 @@ class CorController extends Controller
                 ]));
             }
 
-            $cor['path'] = Storage::disk($cor->disk)->url($cor->path) ?? ''; 
+            $files[] = [
+                'id' => 1,
+                'path' => Storage::disk($cor->disk)->url($cor->path) ?? '',
+                'slug' => $cor->slug,
+            ];
+
+            $keys = [
+                'id',
+                'disk',
+                'extension',
+                'description',
+                'student_payment_id',
+                'student_registrar_file_id',
+                'updated_at',
+                'deleted_at',
+                'administrator_id',
+                'student_id',
+                'student_files',
+            ];
+
+            $cor['file'] = $files;
+            $cor = $this->unsetFromArray($cor, $keys);
 
             Log::info("Successfully stored student ID " . $student->id . "'s certificate of registration. Leaving CorController studentCorStore...\n");
             return $this->successResponse("details", $cor);
