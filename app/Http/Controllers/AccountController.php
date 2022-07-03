@@ -478,7 +478,7 @@ class AccountController extends Controller
             'student_number' => 'bail|required|string|min:2|max:200|unique:students',
             'course' => 'bail|required|in:bsit,bscs,bsis,bsba',
             // 'year' => 'bail|required|regex:/^\d{4}$/',
-            'year' => 'bail|required|numeric|in:1,2,3',
+            'year' => 'bail|required|numeric|in:1,2,3,4',
             'term' => 'bail|required|numeric|in:1,2,3',
             'email' => 'bail|required|email|unique:students',
             'password' => 'bail|required|string|min:8|max:20',
@@ -601,6 +601,134 @@ class AccountController extends Controller
             return $this->successResponse("details", $student->only(['first_name', 'middle_name', 'last_name']));
         } catch (\Exception $e) {
             Log::error("Failed to update student's name. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    public function studentCourseUpdate(Request $request) {
+        Log::info("Entering AccountController studentCourseUpdate...\n");
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+            'slug' => 'bail|required|exists:students',
+            'course' => 'bail|required|in:bsit,bscs,bsis,bsba',
+        ]);
+
+        try {
+            $user = Administrator::where('email', $request->auth_email)->first();
+            $student = $this->getRecord('students', $request->slug);
+
+            if (!($user)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'administrator',
+                ]));
+            }
+
+            if (!($student)) {
+                Log::error("Student does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'student',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $user);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $student->course = $request->course;
+
+            $student->save();
+
+            Log::info("Successfully updated student ID " . $student->id . "'s course. Leaving AccountController studentCourseUpdate...\n");
+            return $this->successResponse("details", $student->only(['course']));
+        } catch (\Exception $e) {
+            Log::error("Failed to update student's course. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    public function studentYearTermUpdate(Request $request) {
+        Log::info("Entering AccountController studentYearTermUpdate...\n");
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+            'slug' => 'bail|required|exists:students',
+            'year' => 'bail|nullable|numeric|in:1,2,3,4',
+            'term' => 'bail|nullable|numeric|in:1,2,3',
+        ]);
+
+        try {
+            $user = Administrator::where('email', $request->auth_email)->first();
+            $student = $this->getRecord('students', $request->slug);
+
+            if (!($user)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'administrator',
+                ]));
+            }
+
+            if (!($student)) {
+                Log::error("Student does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'student',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $user);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            if (!($request->year) && !($request->term)) {
+                Log::error("Year and term are not present on the request.\n");
+                return $this->errorResponse("Year or term is required.");
+            }
+
+            $student->year = $request->year ?? $student->year;
+            $student->term = $request->term ?? $student->term;
+
+            $student->save();
+
+            Log::info("Successfully updated student ID " . $student->id . "'s year and term. Leaving AccountController studentYearTermUpdate...\n");
+            return $this->successResponse("details", [
+                'year' => $student['year'],
+                'term' => $student['term'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to update student's year and term. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
