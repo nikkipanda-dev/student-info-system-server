@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Administrator;
 use App\Models\Student;
+use App\Models\StudentEnrollmentCategory;
 use App\Models\StudentFile;
 use Illuminate\Support\Facades\Storage;
 use App\Traits\ResponseTrait;
@@ -538,6 +539,74 @@ class AccountController extends Controller
             return $this->successResponse("details", $student->refresh());
         } catch (\Exception $e) {
             Log::error("Failed to store new student. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    public function studentEnrollmentStatusUpdate(Request $request) {
+        Log::info("Entering AccountController studentEnrollmentStatusUpdate...\n");
+
+        $this->validate($request, [
+            'auth_email' => 'bail|required|exists:administrators,email',
+            'slug' => 'bail|required|exists:students',
+            'enrollment_status' => 'bail|required|in:enrolled,dropped,expelled,graduate',
+        ]);
+
+        try {
+            $user = Administrator::where('email', $request->auth_email)->first();
+            $student = $this->getRecord('students', $request->slug);
+
+            if (!($user)) {
+                Log::error("User does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'administrator',
+                ]));
+            }
+
+            if (!($student)) {
+                Log::error("Student does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'student',
+                ]));
+            }
+
+            $tokenId = $this->getTokenId($request->bearerToken(), $user);
+
+            if (!($tokenId)) {
+                Log::error("Bearer token is missing and/or user-token did not match.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'default',
+                ]));
+            }
+
+            if (!($user->is_admin)) {
+                Log::error("User is not flagged as an admin.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $keys = ['enrolled', 'dropped', 'expelled', 'graduate'];
+            
+            for ($i = 0; $i < count($keys); $i++) {
+                $student->{"is_".$keys[$i]} = false;
+
+                if ($keys[$i] === $request->enrollment_status) {
+                    $student->{"is_".$keys[$i]} = true;
+
+                }
+            }
+
+            $student->save();
+
+            Log::info("Successfully updated student ID " . $student->id . "'s enrollment status. Leaving AccountController studentEnrollmentStatusUpdate...\n");
+            return $this->successResponse("details", $student->only(['is_enrolled', 'is_dropped', 'is_expelled']));
+        } catch (\Exception $e) {
+            Log::error("Failed to update student's enrollment status. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
