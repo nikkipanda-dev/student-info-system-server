@@ -9,6 +9,7 @@ use App\Models\StudentPayment;
 use App\Models\StudentRegistrarFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use PhpParser\Node\Expr\Cast\Array_;
 
 trait RecordTrait {
     public function generateSlug($model) {
@@ -100,5 +101,17 @@ trait RecordTrait {
         }
 
         return $url;
+    }
+
+    public function unsetFromArray(Object $array, Array $keys) {
+        $decoded = json_decode(json_encode($array), true);
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $decoded)) {
+                unset($decoded[$key]);
+            }
+        }
+
+        return $decoded;
     }
 }

@@ -62,8 +62,29 @@ class PaymentController extends Controller
                 ]));
             }
 
+            $formattedArr = [];
+            foreach ($payments as $payment) {
+                $files = [];
+
+                $ctr = 0;
+                foreach ($payment->studentFiles as $file) {
+                    ++$ctr;
+
+                    $files[] = [
+                        'id' => $ctr,
+                        'path' => Storage::disk($file->disk)->url($file->path) ?? '',
+                        'slug' => $file->slug,
+                    ];
+                }
+
+                $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
+                $payment = $this->unsetFromArray($payment, $keys);
+                $payment['files'] = $files;
+                $formattedArr[] = $payment;
+            }
+
             Log::info("Successfully retrieved student's payments. Leaving PaymentController studentPaymentGetAll...\n");
-            return $this->successResponse("details", $payments);
+            return $this->successResponse("details", $formattedArr);
         } catch (\Exception $e) {
             Log::error("Failed to retrieve student's payments. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
