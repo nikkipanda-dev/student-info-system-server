@@ -24,6 +24,10 @@ return new class extends Migration
             $table->string('course');
             $table->string('year');
             $table->string('term');
+            $table->boolean('is_enrolled')->default(true);
+            $table->boolean('is_dropped')->default(false);
+            $table->boolean('is_expelled')->default(false);
+            $table->boolean('is_graduate')->default(false);
             $table->string('slug')->unique();
             $table->timestamps();
         });

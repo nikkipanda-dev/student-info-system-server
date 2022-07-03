@@ -46,6 +46,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("/students", [AccountController::class, "studentGetAll"]);
     Route::get("/student", [AccountController::class, "studentGet"]);
     Route::post("/student-register", [AccountController::class, "studentStore"]);
+    Route::post("/student-enrollment-status-update", [AccountController::class, "studentEnrollmentStatusUpdate"]);
     Route::post("/student-name-update", [AccountController::class, "studentNameUpdate"]);
     Route::post("/student-course-update", [AccountController::class, "studentCourseUpdate"]);
     Route::post("/student-year-term-update", [AccountController::class, "studentYearTermUpdate"]);
