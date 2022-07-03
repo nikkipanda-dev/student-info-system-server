@@ -201,7 +201,28 @@ class PermitController extends Controller
                 ]));
             }
 
-            $permit['path'] = Storage::disk($permit->disk)->url($permit->path) ?? '';
+            $files[] = [
+                'id' => 1,
+                'path' => Storage::disk($permit->disk)->url($permit->path) ?? '',
+                'slug' => $permit->slug,
+            ];
+
+            $keys = [
+                'id',
+                'disk',
+                'extension',
+                'description',
+                'student_payment_id',
+                'student_registrar_file_id',
+                'updated_at',
+                'deleted_at',
+                'administrator_id',
+                'student_id',
+                'student_files',
+            ];
+
+            $permit['file'] = $files;
+            $permit = $this->unsetFromArray($permit, $keys);
 
             Log::info("Successfully stored student ID " . $student->id . "'s permit. Leaving PermitController studentPermitStore...\n");
             return $this->successResponse("details", $permit);
