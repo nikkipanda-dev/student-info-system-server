@@ -604,7 +604,7 @@ class AccountController extends Controller
             $student->save();
 
             Log::info("Successfully updated student ID " . $student->id . "'s enrollment status. Leaving AccountController studentEnrollmentStatusUpdate...\n");
-            return $this->successResponse("details", $student->only(['is_enrolled', 'is_dropped', 'is_expelled']));
+            return $this->successResponse("details", $student->only(['is_enrolled', 'is_dropped', 'is_expelled', 'is_graduate']));
         } catch (\Exception $e) {
             Log::error("Failed to update student's enrollment status. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
