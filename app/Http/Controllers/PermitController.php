@@ -211,7 +211,6 @@ class PermitController extends Controller
                 'id',
                 'disk',
                 'extension',
-                'description',
                 'student_payment_id',
                 'student_registrar_file_id',
                 'updated_at',
