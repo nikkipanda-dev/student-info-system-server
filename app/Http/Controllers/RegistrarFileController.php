@@ -247,6 +247,23 @@ class RegistrarFileController extends Controller
                 ]));
             }
 
+            $newRegistrarFile->refresh();
+
+            $ctr = 0;
+            foreach ($newRegistrarFile->studentFiles as $file) {
+                ++$ctr;
+
+                $files[] = [
+                    'id' => $ctr,
+                    'path' => Storage::disk($file->disk)->url($file->path) ?? '',
+                    'slug' => $file->slug,
+                ];
+                $newRegistrarFile['files'] = $files;
+            }
+
+            $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
+            $newRegistrarFile = $this->unsetFromArray($newRegistrarFile, $keys);
+
             Log::info("Successfully stored student ID " . $student->id . "'s registrar file. Leaving RegistrarFileController studentRegistrarFileStore...\n");
             return $this->successResponse("details", $newRegistrarFile);
         } catch (\Exception $e) {
@@ -439,12 +456,13 @@ class RegistrarFileController extends Controller
             }
 
             $registrarFile->refresh();
-
-            Log::info($registrarFile);
+            $ctr = 0;
 
             foreach ($registrarFile->studentFiles as $file) {
+                ++$ctr;
+
                 $files[] = [
-                    'id' => 1,
+                    'id' => $ctr,
                     'path' => Storage::disk($file->disk)->url($file->path) ?? '',
                     'slug' => $file->slug,
                 ];
@@ -453,8 +471,6 @@ class RegistrarFileController extends Controller
 
             $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
             $registrarFile = $this->unsetFromArray($registrarFile, $keys);
-
-            Log::info($registrarFile);
 
             Log::info("Successfully updated student ID " . $student->id . "'s registrar file. Leaving RegistrarFileController studentRegistrarFileUpdate...\n");
             return $this->successResponse("details", [
