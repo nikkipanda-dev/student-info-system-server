@@ -48,8 +48,8 @@ class AuthController extends Controller
                 ]));
             }
 
-            if (!($user->is_super_admin) || !($user->is_admin)) {
-                $message = "Administrator is neither flagged as a super admin or admin.\n";
+            if (!($user->is_admin)) {
+                $message = "Administrator is not flagged as an admin.\n";
                 $this->logResponses($user->id, null, $message, $page);
                 Log::error($message);
 
