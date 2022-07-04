@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Administrator;
-use App\Models\Student;
 use App\Models\StudentFile;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Traits\ResponseTrait;
@@ -113,12 +113,16 @@ class CorController extends Controller
             'image' => 'bail|required|image',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -143,7 +147,9 @@ class CorController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -225,7 +231,10 @@ class CorController extends Controller
             $cor['file'] = $files;
             $cor = $this->unsetFromArray($cor, $keys);
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " created a new certificate of registration(COR) for student number" . $student->student_number . ". New COR slug: " . $cor['slug'] . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully stored student ID " . $student->id . "'s certificate of registration. Leaving CorController studentCorStore...\n");
+
             return $this->successResponse("details", $cor);
         } catch (\Exception $e) {
             Log::error("Failed to store student's certificate of registration. " . $e->getMessage() . ".\n");
@@ -245,12 +254,16 @@ class CorController extends Controller
             'image' => 'bail|required|image',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -275,7 +288,9 @@ class CorController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -374,7 +389,10 @@ class CorController extends Controller
             $cor['file'] = $files;
             $cor = $this->unsetFromArray($cor, $keys);
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated a certificate of registration (COR) for student number" . $student->student_number . ". Previous COR slug: ".$originalRecord['slug']. ". New COR slug: " . $cor['slug'] . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s certificate of registration. Leaving CorController studentCorUpdate...\n");
+
             return $this->successResponse("details", [
                 'slug' => $cor['slug'],
                 'file' => $cor['file'],
@@ -396,12 +414,16 @@ class CorController extends Controller
             'slug' => 'bail|required|exists:student_files',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -426,7 +448,9 @@ class CorController extends Controller
             }
 
             if (!($user->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as a super admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -456,7 +480,10 @@ class CorController extends Controller
             // Set existing file to private
             Storage::disk($originalRecord['disk'])->setVisibility($originalRecord['path'], 'private');
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " deleted a certificate of registration (COR) from student number" . $student->student_number . ". COR slug: " . $originalRecord['slug'] . "\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully soft deleted student ID " . $student->id . "'s certificate of registration. Leaving CorController studentCorDestroy...\n");
+
             return $this->successResponse("details", [
                 'slug' => $originalRecord['slug'],
             ]);

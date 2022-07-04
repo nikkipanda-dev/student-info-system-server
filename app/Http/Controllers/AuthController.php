@@ -14,18 +14,23 @@ class AuthController extends Controller
     use ResponseTrait;
 
     public function authenticate(Request $request) {
-        Log::info("Entering AuthController authenticate func...\n");
+        Log::info("Entering AuthController authenticate...\n");
 
         $this->validate($request, [
             'email' => 'bail|required',
             'password' => 'bail|required',
         ]);
 
+        $page = "/admin";
+
         try {
             $user = Administrator::where('email', $request->email)->first();
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email ".$request->email." and password ".$request->password.".\n";
+                $this->logResponses(null, null, $message, $page);
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'user',
@@ -33,27 +38,38 @@ class AuthController extends Controller
             }
 
             if (!(Hash::check($request->password, $user->password))) {
-                Log::error("Password is incorrect.\n");
+                $message = "Password is incorrect. Provided email " . $request->email . ".\n";
+                $this->logResponses($user->id, null, $message, $page);
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'incorrect-pw',
                 ]));
             }
 
             if (!($user->is_super_admin) || !($user->is_admin)) {
-                Log::error("User is neither flagged as a super admin or admin.\n");
+                $message = "Administrator is neither flagged as a super admin or admin.\n";
+                $this->logResponses($user->id, null, $message, $page);
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
             }
 
             $token = $user->createToken("auth_admin_token")->plainTextToken;
+            $message = "Admin ".$user->first_name." ".$user->last_name." logged in. ID: ".$user->id.".\n";
+            $this->logResponses($user->id, null, $message, $page);
+            Log::info("Successfully authenticated administrator ID " . $user->id . ". AuthController authenticate...\n");
 
             return $this->successResponse("details", [
                 'user' => $user,
                 'token' => $token,
             ]);
         } catch(\Exception $e) {
-            Log::error("Failed to authenticated user. ".$e->getMessage().".\n");
+            $message = "Failed to authenticated user. " . $e->getMessage() . ".\n";
+            Log::error($message);
+
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
@@ -68,13 +84,16 @@ class AuthController extends Controller
             'password' => 'bail|required',
         ]);
 
-        Log::info($request);
+        $page = "student app index";
 
         try {
             $user = Student::where('email', $request->email)->first();
 
             if (!($user)) {
-                Log::error("Student does not exist on our system.\n");
+                $message = "Student does not exist on our system. Provided email " . $request->email . " and password " . $request->password . ".\n";
+                $this->logResponses(null, null, $message, $page);
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'student',
@@ -82,14 +101,20 @@ class AuthController extends Controller
             }
 
             if (!(Hash::check($request->password, $user->password))) {
-                Log::error("Password is incorrect.\n");
+                $message = "Password is incorrect. Provided email " . $request->email . ".\n";
+                $this->logResponses(null, $user->id, $message, $page);
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'incorrect-pw',
                 ]));
             }
 
             if (!($user->is_enrolled)) {
-                Log::error("User is not flagged as enrolled.\n");
+                $message = "User is not flagged as enrolled.\n";
+                $this->logResponses(null, $user->id, $message, $page);
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -97,14 +122,18 @@ class AuthController extends Controller
 
             $token = $user->createToken("auth_student_token")->plainTextToken;
 
-            Log::info("Successfully authenticated user ID " . $user->id . ". AuthController authenticateStudent...\n");
+            $message = "Student ". $user->first_name . " " . $user->last_name . " logged in. Student number: " . $user->student_number . "\n";
+            $this->logResponses(null, $user->id, $message, $page);
+            Log::info("Successfully authenticated student ID " . $user->id . ". AuthController authenticateStudent...\n");
 
             return $this->successResponse("details", [
                 'user' => $user,
                 'token' => $token,
             ]);
         } catch (\Exception $e) {
-            Log::error("Failed to authenticated user. " . $e->getMessage() . ".\n");
+            $message = "Failed to authenticated student. " . $e->getMessage() . ".\n";
+            Log::error($message);
+
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
@@ -118,14 +147,19 @@ class AuthController extends Controller
             'email' => 'bail|required|exists:administrators',
         ]);
 
+        $page = "admin app";
+
         try {
             $user = Administrator::where('email', $request->email)->first();
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->email . ".\n";
+                $this->logResponses(null, null, $message, $page);
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
-                    'content' => 'user',
+                    'content' => 'administrator',
                 ]));
             }
 
@@ -141,11 +175,15 @@ class AuthController extends Controller
             $this->revokeToken($tokenId, $user);
             $originalUser = $user->getOriginal();
 
+            $message = "Admin " . $originalUser['first_name']. " " . $originalUser['last_name']. " signed out. ID: " . $originalUser['id'] . ".\n";
+            $this->logResponses($originalUser['id'], null, $message, $page);
             Log::info("Successfully logged out user ID ". $originalUser['id'].". AuthController adminLogout...\n");
 
             return $this->successResponse(null, null);
         } catch (\Exception $e) {
-            Log::error("Failed to logout user. " . $e->getMessage() . ".\n");
+            $message = "Failed to logout administrator. " . $e->getMessage() . ".\n";
+            Log::error($message);
+
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
@@ -159,11 +197,16 @@ class AuthController extends Controller
             'email' => 'bail|required|exists:students',
         ]);
 
+        $page = "student app";
+
         try {
             $user = Student::where('email', $request->email)->first();
 
             if (!($user)) {
-                Log::error("Student does not exist on our system.\n");
+                $message = "Student does not exist on our system. Provided email " . $request->email . ".\n";
+                $this->logResponses(null, null, $message, $page);
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'student',
@@ -182,11 +225,15 @@ class AuthController extends Controller
             $this->revokeToken($tokenId, $user);
             $originalUser = $user->getOriginal();
 
+            $message = "Student " . $originalUser['first_name'] . " " . $originalUser['last_name'] . " signed out. Student number: " . $originalUser['student_number'] . "\n";
+            $this->logResponses(null, $originalUser['id'], $message, $page);
             Log::info("Successfully logged out student ID " . $originalUser['id'] . ". AuthController studentLogout...\n");
 
             return $this->successResponse(null, null);
         } catch (\Exception $e) {
-            Log::error("Failed to logout student. " . $e->getMessage() . ".\n");
+            $message = "Failed to logout student. " . $e->getMessage() . ".\n";
+            Log::error($message);
+            
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));

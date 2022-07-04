@@ -8,6 +8,7 @@ use App\Models\StudentFile;
 use App\Models\StudentPayment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use App\Traits\RecordTrait;
 use App\Traits\ResponseTrait;
@@ -109,12 +110,16 @@ class PaymentController extends Controller
             'status' => 'bail|required|in:pending,verified',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -139,7 +144,9 @@ class PaymentController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -271,7 +278,10 @@ class PaymentController extends Controller
             $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
             $newPayment = $this->unsetFromArray($newPayment, $keys);
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " created a new payment for student number" . $student->student_number. ". New payment slug: " . $newPayment['slug']. ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully stored student ID " . $student->id . "'s payments. Leaving AccountController studentPaymentStore...\n");
+
             return $this->successResponse("details", $newPayment);
         } catch (\Exception $e) {
             Log::error("Failed to store student's payments. " . $e->getMessage() . ".\n");
@@ -291,12 +301,16 @@ class PaymentController extends Controller
             'status' => 'bail|required|in:pending,verified',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -321,7 +335,9 @@ class PaymentController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -333,7 +349,10 @@ class PaymentController extends Controller
 
             $payment->save();
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated a payment for student number" . $student->student_number . ". Payment slug: " . $payment->slug . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s payment. Leaving PaymentController studentPaymentUpdate...\n");
+
             return $this->successResponse("details", $payment->only(['status']));
         } catch (\Exception $e) {
             Log::error("Failed to update student's payment. " . $e->getMessage() . ".\n");
@@ -352,12 +371,16 @@ class PaymentController extends Controller
             'slug' => 'bail|required|exists:student_payments',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -382,7 +405,9 @@ class PaymentController extends Controller
             }
 
             if (!($user->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as a super admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -412,10 +437,11 @@ class PaymentController extends Controller
                     $file->delete();
 
                     if (StudentFile::find($originalFile['id'])) {
-                        Log::error("Failed to soft delete student's file ID " . $originalFile['id'] . ". Student file still exists.\n");
                         $errorText = $this->getPredefinedResponse([
                             'type' => 'default',
                         ]);
+                        
+                        throw new Exception("Failed to soft delete student's file ID " . $originalFile['id'] . ". Student file still exists.\n");
 
                         break;
                     }
@@ -461,7 +487,10 @@ class PaymentController extends Controller
                 return $this->errorResponse($transactionResponse['error_text']);
             }
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " deleted a payment from student number" . $student->student_number . ". Payment slug: " . $transactionResponse['payment']['slug'] . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully soft deleted student ID " . $student->id . "'s payment. Leaving PaymentController studentPaymentDestroy...\n");
+
             return $this->successResponse("details", [
                 'slug' => $transactionResponse['payment']['slug'],
             ]);

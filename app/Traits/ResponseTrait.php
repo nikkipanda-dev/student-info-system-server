@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use Illuminate\Support\Str;
+use App\Models\UserLog;
 use Illuminate\Support\Facades\Log;
 
 trait ResponseTrait {
@@ -51,5 +52,30 @@ trait ResponseTrait {
 
     public function revokeToken($tokenId, $user) {
         $user->tokens()->where('id', $tokenId)->delete();
+    }
+
+    public function logResponses($adminId, $studentId, $description, $page) {
+        if (!($description)) {
+            Log::error("No description for user logs.");
+        }
+
+        if (!($page)) {
+            Log::error("No page for user logs.");
+        }
+
+        $userLog = new UserLog();
+
+        if ($adminId) {
+            $userLog->administrator_id = $adminId;
+        }
+
+        if ($studentId) {
+            $userLog->student_id = $studentId;
+        }
+
+        $userLog->description = $description;
+        $userLog->page = $page;
+
+        $userLog->save();
     }
 }

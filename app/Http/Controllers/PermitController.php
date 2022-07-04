@@ -7,6 +7,7 @@ use App\Models\Administrator;
 use App\Models\StudentFile;
 use App\Traits\ResponseTrait;
 use App\Traits\RecordTrait;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
@@ -111,12 +112,16 @@ class PermitController extends Controller
             'image' => 'bail|required|image',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -141,7 +146,9 @@ class PermitController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -222,7 +229,10 @@ class PermitController extends Controller
             $permit['file'] = $files;
             $permit = $this->unsetFromArray($permit, $keys);
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " created a new permit for student number" . $student->student_number . ". New permit slug: " . $permit['slug'] . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully stored student ID " . $student->id . "'s permit. Leaving PermitController studentPermitStore...\n");
+
             return $this->successResponse("details", $permit);
         } catch (\Exception $e) {
             Log::error("Failed to store student's permit. " . $e->getMessage() . ".\n");
@@ -243,12 +253,16 @@ class PermitController extends Controller
             'image' => 'bail|required|image',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -273,7 +287,9 @@ class PermitController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -371,7 +387,10 @@ class PermitController extends Controller
             $permit['file'] = $files;
             $permit = $this->unsetFromArray($permit, $keys);
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated a permit for student number" . $student->student_number . ". Previous permit slug: " . $originalRecord['slug'] . ". New permit slug: " . $permit['slug'] . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s permit. Leaving PermitController studentPermitUpdate...\n");
+
             return $this->successResponse("details", [
                 'slug' => $permit['slug'],
                 'file' => $permit['file'],
@@ -393,12 +412,16 @@ class PermitController extends Controller
             'slug' => 'bail|required|exists:student_files',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -423,7 +446,9 @@ class PermitController extends Controller
             }
 
             if (!($user->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as a super admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -453,7 +478,10 @@ class PermitController extends Controller
             // Set existing file to private
             Storage::disk($originalRecord['disk'])->setVisibility($originalRecord['path'], 'private');
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " deleted a permit from student number" . $student->student_number . ". Permit slug: " . $originalRecord['slug'] . "\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully soft deleted student ID " . $student->id . "'s permit. Leaving PermitController studentPermitDestroy...\n");
+
             return $this->successResponse("details", [
                 'slug' => $originalRecord['slug'],
             ]);
