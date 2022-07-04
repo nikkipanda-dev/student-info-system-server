@@ -23,13 +23,16 @@ use Illuminate\Support\Facades\Route;
 Route::get("/test", [AuthController::class, "test"]);
 
 Route::post("/login", [AuthController::class, "authenticate"]);
+Route::post("/student-authenticate", [AuthController::class, "authenticateStudent"]);
 
 // File
 Route::get("/student/file/download/{admin_slug}/{student_slug}/{file_slug}", [FileController::class, "studentFileDownload"]);
+Route::get("/student/file/download/{student_slug}/{file_slug}", [FileController::class, "studentAuthFileDownload"]);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     // Admin
     Route::post("/logout", [AuthController::class, "adminLogout"]);
+    Route::post("/student-logout", [AuthController::class, "studentLogout"]);
     Route::get("/admins", [AccountController::class, "adminGetAll"]);
     Route::post("/admin-register", [AccountController::class, "adminStore"]);
     Route::post("/toggle-admin-status", [AccountController::class, "adminToggleStatus"]);
@@ -77,4 +80,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post("/student-registrar-file-store", [RegistrarFileController::class, "studentRegistrarFileStore"]);
     Route::post("/student-registrar-file-update", [RegistrarFileController::class, "studentRegistrarFileUpdate"]);
     Route::post("/student-registrar-file-destroy", [RegistrarFileController::class, "studentRegistrarFileDestroy"]);
+
+    // Authenticated student
+    Route::get("/auth-student-payments-get", [PaymentController::class, "studentAuthPaymentGetAll"]);
+    Route::get("/auth-student-cors-get", [CorController::class, "studentAuthCorGetAll"]);
+    Route::get("/auth-student-permits-get", [PermitController::class, "studentAuthPermitGetAll"]);
+    Route::get("/auth-student-registrar-files-get", [RegistrarFileController::class, "studentAuthRegistrarFileGetAll"]);
 });

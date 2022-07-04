@@ -464,4 +464,82 @@ class PermitController extends Controller
             ]));
         }
     }
+
+    // Authenticated student
+    public function studentAuthPermitGetAll(Request $request) {
+        Log::info("Entering PermitController studentAuthPermitGetAll...\n");
+
+        $this->validate($request, [
+            'slug' => 'bail|required|exists:students',
+        ]);
+
+        try {
+            $student = $this->getRecord("students", $request->slug);
+
+            if (!($student)) {
+                Log::notice("Student does not exist or might be deleted.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'student',
+                ]));
+            }
+
+            if (!($student->is_enrolled)) {
+                Log::error("Student is not flagged as enrolled.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $permits = StudentFile::where('student_id', $student->id)
+                                  ->where('type', "permit")
+                                  ->get();
+
+            if (count($permits) === 0) {
+                Log::notice("No permits yet.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'empty',
+                ]));
+            }
+
+            $formattedArr = [];
+            $ctr = 0;
+            foreach ($permits as $permit) {
+                $files = [];
+
+                ++$ctr;
+
+                $keys = [
+                    'id',
+                    'disk',
+                    'extension',
+                    'student_payment_id',
+                    'student_registrar_file_id',
+                    'updated_at',
+                    'deleted_at',
+                    'administrator_id',
+                    'student_id',
+                    'student_files'
+                ];
+
+                $files[] = [
+                    'id' => $ctr,
+                    'path' => Storage::disk($permit->disk)->url($permit->path) ?? '',
+                    'slug' => $permit->slug,
+                ];
+
+                $permit['file'] = $files;
+                $permit = $this->unsetFromArray($permit, $keys);
+                $formattedArr[] = $permit;
+            }
+
+            Log::info("Successfully retrieved authenticated student's permits. Leaving PermitController studentAuthPermitGetAll...\n");
+            return $this->successResponse("details", $formattedArr);
+        } catch (\Exception $e) {
+            Log::error("Failed to retrieve authenticated student's permits. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
 }

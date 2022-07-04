@@ -15,6 +15,7 @@ class CorController extends Controller
 {
     use ResponseTrait, RecordTrait;
 
+    // Authenticated admin
     public function studentCorGetAll(Request $request) {
         Log::info("Entering CorController studentCorGetAll...\n");
 
@@ -461,6 +462,85 @@ class CorController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error("Failed to soft delete student's certificate of registration. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    // Authenticated student
+    public function studentAuthCorGetAll(Request $request) {
+        Log::info("Entering CorController studentAuthCorGetAll...\n");
+
+        $this->validate($request, [
+            'slug' => 'bail|required|exists:students',
+        ]);
+
+        try {
+            $student = $this->getRecord("students", $request->slug);
+
+            if (!($student)) {
+                Log::notice("Student does not exist or might be deleted.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'student',
+                ]));
+            }
+
+            if (!($student->is_enrolled)) {
+                Log::error("Student is not flagged as enrolled.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $cors = StudentFile::where('student_id', $student->id)
+                               ->where('type', "cor")
+                               ->get();
+
+            if (count($cors) === 0) {
+                Log::notice("No certificates of registration yet.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'empty',
+                ]));
+            }
+
+            $formattedArr = [];
+            $ctr = 0;
+            foreach ($cors as $cor) {
+                $files = [];
+
+                ++$ctr;
+
+                $keys = [
+                    'id',
+                    'disk',
+                    'extension',
+                    'description',
+                    'student_payment_id',
+                    'student_registrar_file_id',
+                    'updated_at',
+                    'deleted_at',
+                    'administrator_id',
+                    'student_id',
+                    'student_files'
+                ];
+
+                $files[] = [
+                    'id' => $ctr,
+                    'path' => Storage::disk($cor->disk)->url($cor->path) ?? '',
+                    'slug' => $cor->slug,
+                ];
+
+                $cor['file'] = $files;
+                $cor = $this->unsetFromArray($cor, $keys);
+                $formattedArr[] = $cor;
+            }
+
+            Log::info("Successfully retrieved authenticated student's certificates of registration. Leaving CorController studentAuthCorGetAll...\n");
+            return $this->successResponse("details", $formattedArr);
+        } catch (\Exception $e) {
+            Log::error("Failed to retrieve authenticated student's certificates of registration. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));

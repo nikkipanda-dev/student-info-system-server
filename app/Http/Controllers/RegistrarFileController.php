@@ -617,4 +617,72 @@ class RegistrarFileController extends Controller
             ]));
         }
     }
+
+    // Authenticated student
+    public function studentAuthRegistrarFileGetAll(Request $request) {
+        Log::info("Entering RegistrarFileController studentAuthRegistrarFileGetAll...\n");
+
+        $this->validate($request, [
+            'slug' => 'bail|required|exists:students',
+        ]);
+
+        try {
+            $student = $this->getRecord("students", $request->slug);
+
+            if (!($student)) {
+                Log::notice("Student does not exist or might be deleted.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'student',
+                ]));
+            }
+
+            if (!($student->is_enrolled)) {
+                Log::error("Student is not flagged as enrolled.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $registrarFiles = StudentRegistrarFile::with('studentFiles')
+                                                  ->where('student_id', $student->id)
+                                                  ->get();
+
+            if (count($registrarFiles) === 0) {
+                Log::notice("No registrar files yet.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'empty',
+                ]));
+            }
+
+            $formattedArr = [];
+            foreach ($registrarFiles as $registrarFile) {
+                $files = [];
+
+                $ctr = 0;
+                foreach ($registrarFile->studentFiles as $file) {
+                    ++$ctr;
+
+                    $files[] = [
+                        'id' => $ctr,
+                        'path' => Storage::disk($file->disk)->url($file->path) ?? '',
+                        'slug' => $file->slug,
+                    ];
+                }
+
+                $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
+                $registrarFile = $this->unsetFromArray($registrarFile, $keys);
+                $registrarFile['files'] = $files;
+                $formattedArr[] = $registrarFile;
+            }
+
+            Log::info("Successfully retrieved authenticated student's registrar files. Leaving RegistrarFileController studentAuthRegistrarFileGetAll...\n");
+            return $this->successResponse("details", $formattedArr);
+        } catch (\Exception $e) {
+            Log::error("Failed to retrieve authenticated student's registrar files. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
 }

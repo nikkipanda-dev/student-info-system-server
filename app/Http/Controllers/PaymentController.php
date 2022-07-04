@@ -18,6 +18,7 @@ class PaymentController extends Controller
 {
     use RecordTrait, ResponseTrait;
 
+    // Authenticated admin
     public function studentPaymentGetAll(Request $request) {
         Log::info("Entering PaymentController studentPaymentGetAll...\n");
 
@@ -466,6 +467,74 @@ class PaymentController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error("Failed to soft delete student's payment. " . $e->getMessage() . ".\n");
+            return $this->errorResponse($this->getPredefinedResponse([
+                'type' => 'default',
+            ]));
+        }
+    }
+
+    // Authenticated student
+    public function studentAuthPaymentGetAll(Request $request) {
+        Log::info("Entering PaymentController studentAuthPaymentGetAll...\n");
+
+        $this->validate($request, [
+            'slug' => 'bail|required|exists:students',
+        ]);
+
+        try {
+            $student = $this->getRecord("students", $request->slug);
+
+            if (!($student)) {
+                Log::error("Student does not exist on our system.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'not-found',
+                    'content' => 'student',
+                ]));
+            }
+
+            if (!($student->is_enrolled)) {
+                Log::error("Student is not flagged as enrolled.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'unauth',
+                ]));
+            }
+
+            $payments = StudentPayment::with('studentFiles')
+                                      ->where('student_id', $student->id)
+                                      ->get();
+
+            if (count($payments) === 0) {
+                Log::notice("No payments yet.\n");
+                return $this->errorResponse($this->getPredefinedResponse([
+                    'type' => 'empty',
+                ]));
+            }
+
+            $formattedArr = [];
+            foreach ($payments as $payment) {
+                $files = [];
+
+                $ctr = 0;
+                foreach ($payment->studentFiles as $file) {
+                    ++$ctr;
+
+                    $files[] = [
+                        'id' => $ctr,
+                        'path' => Storage::disk($file->disk)->url($file->path) ?? '',
+                        'slug' => $file->slug,
+                    ];
+                }
+
+                $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
+                $payment = $this->unsetFromArray($payment, $keys);
+                $payment['files'] = $files;
+                $formattedArr[] = $payment;
+            }
+
+            Log::info("Successfully retrieved authenticated student's payments. Leaving PaymentController studentAuthPaymentGetAll...\n");
+            return $this->successResponse("details", $formattedArr);
+        } catch (\Exception $e) {
+            Log::error("Failed to retrieve authenticated student's payments. " . $e->getMessage() . ".\n");
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'default',
             ]));
