@@ -8,10 +8,11 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Traits\ResponseTrait;
+use App\Traits\RecordTrait;
 
 class LogController extends Controller
 {
-    use ResponseTrait;
+    use ResponseTrait, RecordTrait;
 
     public function getUserLogs(Request $request) {
         Log::info("Entering LogController getUserLogs...\n");

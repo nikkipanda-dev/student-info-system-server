@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Administrator;
 use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use App\Traits\ResponseTrait;
@@ -58,7 +59,7 @@ class AuthController extends Controller
             }
 
             $token = $user->createToken("auth_admin_token")->plainTextToken;
-            $message = "Admin ".$user->first_name." ".$user->last_name." logged in. ID: ".$user->id.".\n";
+            $message = "Admin ".Str::ucfirst($user->first_name)." ".Str::ucfirst($user->last_name)." logged in. ID: ".$user->id.".\n";
             $this->logResponses($user->id, null, $message, $page);
             Log::info("Successfully authenticated administrator ID " . $user->id . ". AuthController authenticate...\n");
 
@@ -122,7 +123,7 @@ class AuthController extends Controller
 
             $token = $user->createToken("auth_student_token")->plainTextToken;
 
-            $message = "Student ". $user->first_name . " " . $user->last_name . " logged in. Student number: " . $user->student_number . "\n";
+            $message = "Student ". Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " logged in. Student number: " . $user->student_number . "\n";
             $this->logResponses(null, $user->id, $message, $page);
             Log::info("Successfully authenticated student ID " . $user->id . ". AuthController authenticateStudent...\n");
 
@@ -175,7 +176,7 @@ class AuthController extends Controller
             $this->revokeToken($tokenId, $user);
             $originalUser = $user->getOriginal();
 
-            $message = "Admin " . $originalUser['first_name']. " " . $originalUser['last_name']. " signed out. ID: " . $originalUser['id'] . ".\n";
+            $message = "Admin " . Str::ucfirst($originalUser['first_name']). " " . Str::ucfirst($originalUser['last_name']). " signed out. ID: " . $originalUser['id'] . ".\n";
             $this->logResponses($originalUser['id'], null, $message, $page);
             Log::info("Successfully logged out user ID ". $originalUser['id'].". AuthController adminLogout...\n");
 
@@ -225,7 +226,7 @@ class AuthController extends Controller
             $this->revokeToken($tokenId, $user);
             $originalUser = $user->getOriginal();
 
-            $message = "Student " . $originalUser['first_name'] . " " . $originalUser['last_name'] . " signed out. Student number: " . $originalUser['student_number'] . "\n";
+            $message = "Student " . Str::ucfirst($originalUser['first_name']) . " " . Str::ucfirst($originalUser['last_name']) . " signed out. Student number: " . $originalUser['student_number'] . "\n";
             $this->logResponses(null, $originalUser['id'], $message, $page);
             Log::info("Successfully logged out student ID " . $originalUser['id'] . ". AuthController studentLogout...\n");
 
