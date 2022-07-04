@@ -20,6 +20,8 @@ class AuthController extends Controller
             'email' => 'bail|required',
             'password' => 'bail|required',
         ]);
+        
+        Log::info($request->all());
 
         $page = "/admin";
 

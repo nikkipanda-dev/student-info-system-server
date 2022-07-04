@@ -1383,7 +1383,7 @@ class AccountController extends Controller
 
             // revoke all tokens and re-issue a new one
             $user->tokens()->delete();
-            $token = $user->createToken('auth_admin_token')->plainTextToken;
+            $token = $user->createToken("auth_".Str::lower($userType)."_token")->plainTextToken;
 
             $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated their password. ".$userType." ID: " . $user->id . ".\n";
             $this->logResponses(null, null, $message, $page);
