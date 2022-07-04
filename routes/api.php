@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CorController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\LogController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PermitController;
 use App\Http\Controllers\RegistrarFileController;
@@ -86,4 +87,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get("/auth-student-cors-get", [CorController::class, "studentAuthCorGetAll"]);
     Route::get("/auth-student-permits-get", [PermitController::class, "studentAuthPermitGetAll"]);
     Route::get("/auth-student-registrar-files-get", [RegistrarFileController::class, "studentAuthRegistrarFileGetAll"]);
+
+    // User logs
+    Route::get("/user-logs", [LogController::class, "getUserLogs"]);
 });

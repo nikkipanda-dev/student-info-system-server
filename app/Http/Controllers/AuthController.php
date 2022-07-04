@@ -21,8 +21,6 @@ class AuthController extends Controller
             'password' => 'bail|required',
         ]);
         
-        Log::info($request->all());
-
         $page = "/admin";
 
         try {
