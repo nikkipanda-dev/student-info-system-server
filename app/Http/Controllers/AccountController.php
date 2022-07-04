@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Administrator;
 use App\Models\Student;
-use App\Models\StudentEnrollmentCategory;
 use App\Models\StudentFile;
 use Illuminate\Support\Facades\Storage;
 use App\Traits\ResponseTrait;
 use App\Traits\AdminTrait;
 use App\Traits\RecordTrait;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
@@ -76,11 +76,15 @@ class AccountController extends Controller
             'password_confirmation' => 'bail|required',
         ]);
 
+        $page = "/administrators";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Super administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'super administrator',
@@ -97,7 +101,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator ".Str::ucfirst($user->first_name)." ".Str::ucfirst($user->last_name)." is not flagged as a super admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -121,7 +127,10 @@ class AccountController extends Controller
                 ]));
             }
 
+            $message = "Administrator " .Str::ucfirst($user->first_name). " " .Str::ucfirst($user->last_name). " created a new administrator ".Str::ucfirst($admin->first_name)." ".Str::ucfirst($admin->last_name).". New admin ID: " . $admin->id . ".\n";
+            $this->logResponses($user->id, null, $message, $page);
             Log::info("Successfully stored new administrator ID " . $admin->id . ". Leaving AccountController adminStore...\n");
+
             return $this->successResponse("details", $admin->refresh());
         } catch (\Exception $e) {
             Log::error("Failed to store new administrator. " . $e->getMessage() . ".\n");
@@ -139,12 +148,16 @@ class AccountController extends Controller
             'email' => 'bail|required|exists:administrators',
         ]);
 
+        $page = "/administrators";
+
         try {
             $authUser = Administrator::where('email', $request->auth_email)->first();
             $user = Administrator::where('email', $request->email)->first();
 
             if (!($user) || !($authUser)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "One or both of the administrators do not exist on our system.\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'user',
@@ -160,8 +173,10 @@ class AccountController extends Controller
                 ]));
             }
 
-            if (!($authUser->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+            if (!($user->is_super_admin)) {
+                $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as a super admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -180,7 +195,10 @@ class AccountController extends Controller
                 ]));
             }
 
+            $message = "Administrator " . Str::ucfirst($authUser->first_name) . " " . Str::ucfirst($authUser->last_name) . " updated admin status of administrator ". Str::ucfirst($user->first_name)." ". Str::ucfirst($user->last_name)." from ".$originalStatus." to ".$user->is_admin.". Updated admin ID: " . $user->id . ".\n";
+            $this->logResponses($authUser, null, $message, $page);
             Log::info("Successfully updated administrator ID " . $user->id . "'s status from ".$originalStatus." to ".$user->is_admin.". Leaving AccountController adminToggleStatus...\n");
+
             return $this->successResponse("details", $user->is_admin);
         } catch (\Exception $e) {
             Log::error("Failed to remove as administrator. " . $e->getMessage() . ".\n");
@@ -201,15 +219,19 @@ class AccountController extends Controller
             'last_name' => 'bail|nullable|min:2|max:200',
         ]);
 
+        $page = "/administrators";
+
         try {
             $authUser = Administrator::where('email', $request->auth_email)->first();
             $admin = $this->getRecord('administrators', $request->slug);
 
             if (!($authUser) || !($admin)) {
-                Log::error("Administrator does not exist on our system.\n");
+                $message = "One or both of the administrators do not exist on our system.\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
-                    'content' => 'administrator',
+                    'content' => 'user',
                 ]));
             }
 
@@ -223,7 +245,9 @@ class AccountController extends Controller
             }
 
             if (!($authUser->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator " . Str::ucfirst($authUser->first_name) . " " . Str::ucfirst($authUser->last_name) . " is not flagged as a super admin. ID: " . $authUser->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -235,7 +259,10 @@ class AccountController extends Controller
 
             $admin->save();
 
+            $message = "Administrator " . Str::ucfirst($authUser->first_name) . " " . Str::ucfirst($authUser->last_name) . " updated administrator " . Str::ucfirst($admin->first_name) . " " . Str::ucfirst($admin->last_name) . "'s name. Updated admin ID: " . $admin->id . ".\n";
+            $this->logResponses($authUser->id, null, $message, $page);
             Log::info("Successfully updated administrator ID " . $admin->id . "'s name. Leaving AccountController adminNameUpdate...\n");
+
             return $this->successResponse("details", $admin->only(['first_name', 'middle_name', 'last_name']));
         } catch (\Exception $e) {
             Log::error("Failed to update administrator's name. " . $e->getMessage() . ".\n");
@@ -247,11 +274,15 @@ class AccountController extends Controller
 
     public function adminEmailUpdate(Request $request) {
         Log::info("Entering AccountController adminEmailUpdate...\n");
+        $page = "/administrators";
 
         $admin = $this->getRecord('administrators', $request->slug);
 
         if (!($admin)) {
-            Log::error("Administrator does not exist on our system.\n");
+            $message = "Administrator does not exist on our system.\n";
+            $this->logResponses(null, null, $message, $page);
+            Log::error($message);
+
             return $this->errorResponse($this->getPredefinedResponse([
                 'type' => 'not-found',
                 'content' => 'administrator',
@@ -273,10 +304,12 @@ class AccountController extends Controller
             $authUser = Administrator::where('email', $request->auth_email)->first();
 
             if (!($authUser)) {
-                Log::error("Administrator does not exist on our system.\n");
+                $message = "Super administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
-                    'content' => 'administrator',
+                    'content' => 'super administrator',
                 ]));
             }
 
@@ -290,7 +323,9 @@ class AccountController extends Controller
             }
 
             if (!($authUser->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator " . Str::ucfirst($authUser->first_name) . " " . Str::ucfirst($authUser->last_name) . " is not flagged as a super admin. ID: " . $authUser->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -300,7 +335,10 @@ class AccountController extends Controller
 
             $admin->save();
 
+            $message = "Administrator " . Str::ucfirst($authUser->first_name) . " " . Str::ucfirst($authUser->last_name) . " updated administrator " . Str::ucfirst($admin->first_name) . " " . Str::ucfirst($admin->last_name) . "'s email address to ".$admin->email.". Updated admin ID: " . $admin->id . ".\n";
+            $this->logResponses($authUser->id, null, $message, $page);
             Log::info("Successfully updated administrator ID " . $admin->id . "'s email address. Leaving AccountController adminEmailUpdate...\n");
+
             return $this->successResponse("details", $admin->email);
         } catch (\Exception $e) {
             Log::error("Failed to update administrator's email address. " . $e->getMessage() . ".\n");
@@ -320,15 +358,19 @@ class AccountController extends Controller
             'password_confirmation' => 'bail|required',
         ]);
 
+        $page = "/administrators";
+
         try {
             $authUser = Administrator::where('email', $request->auth_email)->first();
             $admin = $this->getRecord('administrators', $request->slug);
 
             if (!($authUser) || !($admin)) {
-                Log::error("Administrator does not exist on our system.\n");
+                $message = "One or both of the administrators do not exist on our system.\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
-                    'content' => 'administrator',
+                    'content' => 'user',
                 ]));
             }
 
@@ -342,7 +384,9 @@ class AccountController extends Controller
             }
 
             if (!($authUser->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator " . Str::ucfirst($authUser->first_name) . " " . Str::ucfirst($authUser->last_name) . " is not flagged as a super admin. ID: " . $authUser->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -352,7 +396,10 @@ class AccountController extends Controller
 
             $admin->save();
 
+            $message = "Administrator " . Str::ucfirst($authUser->first_name) . " " . Str::ucfirst($authUser->last_name) . " updated administrator " . Str::ucfirst($admin->first_name) . " " . Str::ucfirst($admin->last_name) . "'s password. Updated admin ID: " . $admin->id . ".\n";
+            $this->logResponses($authUser->id, null, $message, $page);
             Log::info("Successfully updated administrator ID " . $admin->id . "'s password. Leaving AccountController studentPasswordUpdate...\n");
+
             return $this->successResponse("details", $admin->only(['first_name', 'middle_name', 'last_name']));
         } catch (\Exception $e) {
             Log::error("Failed to update administrator's password. " . $e->getMessage() . ".\n");
@@ -486,11 +533,15 @@ class AccountController extends Controller
             'password_confirmation' => 'bail|required',
         ]);
 
+        $page = "/students";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -507,7 +558,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -535,7 +588,10 @@ class AccountController extends Controller
                 ]));
             }
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " created a new student " . Str::ucfirst($student->first_name) . " " . Str::ucfirst($student->last_name) . ". New student number: " . $student->student_number . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully stored new student ID " . $student->id . ". Leaving AccountController studentStore...\n");
+
             return $this->successResponse("details", $student->refresh());
         } catch (\Exception $e) {
             Log::error("Failed to store new student. " . $e->getMessage() . ".\n");
@@ -554,12 +610,16 @@ class AccountController extends Controller
             'enrollment_status' => 'bail|required|in:enrolled,dropped,expelled,graduate',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -567,7 +627,9 @@ class AccountController extends Controller
             }
 
             if (!($student)) {
-                Log::error("Student does not exist on our system.\n");
+                $message = "Student does not exist on our system.\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'student',
@@ -584,7 +646,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -603,7 +667,10 @@ class AccountController extends Controller
 
             $student->save();
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated the enrollment status of student " . Str::ucfirst($student->first_name) . " " . Str::ucfirst($student->last_name)." to ".$request->enrollment_status.". Updated student ID: " . $student->id . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s enrollment status. Leaving AccountController studentEnrollmentStatusUpdate...\n");
+
             return $this->successResponse("details", $student->only(['is_enrolled', 'is_dropped', 'is_expelled', 'is_graduate']));
         } catch (\Exception $e) {
             Log::error("Failed to update student's enrollment status. " . $e->getMessage() . ".\n");
@@ -624,12 +691,16 @@ class AccountController extends Controller
             'last_name' => 'bail|nullable|min:2|max:200',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -637,7 +708,9 @@ class AccountController extends Controller
             }
 
             if (!($student)) {
-                Log::error("Student does not exist on our system.\n");
+                $message = "Student does not exist on our system.\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'student',
@@ -654,7 +727,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -666,7 +741,10 @@ class AccountController extends Controller
 
             $student->save();
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated student " . Str::ucfirst($student->first_name) . " " . Str::ucfirst($student->last_name) . "'s name. Updated student ID: " . $student->id . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s name. Leaving AccountController studentNameUpdate...\n");
+
             return $this->successResponse("details", $student->only(['first_name', 'middle_name', 'last_name']));
         } catch (\Exception $e) {
             Log::error("Failed to update student's name. " . $e->getMessage() . ".\n");
@@ -685,12 +763,16 @@ class AccountController extends Controller
             'course' => 'bail|required|in:bsit,bscs,bsis,bsba',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -715,7 +797,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -725,7 +809,10 @@ class AccountController extends Controller
 
             $student->save();
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated student " . Str::ucfirst($student->first_name) . " " . Str::ucfirst($student->last_name) . "'s course to ".$student->course.". Updated student ID: " . $student->id . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s course. Leaving AccountController studentCourseUpdate...\n");
+
             return $this->successResponse("details", $student->only(['course']));
         } catch (\Exception $e) {
             Log::error("Failed to update student's course. " . $e->getMessage() . ".\n");
@@ -745,12 +832,16 @@ class AccountController extends Controller
             'term' => 'bail|nullable|numeric|in:1,2,3',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -775,7 +866,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -791,7 +884,10 @@ class AccountController extends Controller
 
             $student->save();
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated student " . Str::ucfirst($student->first_name) . " " . Str::ucfirst($student->last_name) . "'s year and/or term to year: " . $student->year . " and term: ".$student->term.". Updated student ID: " . $student->id . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s year and term. Leaving AccountController studentYearTermUpdate...\n");
+
             return $this->successResponse("details", [
                 'year' => $student['year'],
                 'term' => $student['term'],
@@ -813,12 +909,16 @@ class AccountController extends Controller
             'image' => 'bail|required|image',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -843,7 +943,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -922,7 +1024,10 @@ class AccountController extends Controller
                 ]));
             }
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated student " . Str::ucfirst($student->first_name) . " " . Str::ucfirst($student->last_name) . "'s display photo. Updated student ID: " . $student->id . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s display photo. Leaving AccountController studentDisplayPhotoUpdate...\n");
+
             return $this->successResponse("details", $this->getFileUrl($disk, $path));
         } catch (\Exception $e) {
             Log::error("Failed to update student's display photo. " . $e->getMessage() . ".\n");
@@ -934,6 +1039,7 @@ class AccountController extends Controller
 
     public function studentEmailUpdate(Request $request) {
         Log::info("Entering AccountController studentEmailUpdate...\n");
+        $page = "/student";
 
         $student = $this->getRecord('students', $request->slug);
 
@@ -960,7 +1066,9 @@ class AccountController extends Controller
             $user = Administrator::where('email', $request->auth_email)->first();
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -977,7 +1085,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -987,7 +1097,10 @@ class AccountController extends Controller
 
             $student->save();
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated student " . Str::ucfirst($student->first_name) . " " . Str::ucfirst($student->last_name) . "'s email address to " . $student->email . ". Updated student ID: " . $student->id . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s email address. Leaving AccountController studentEmailUpdate...\n");
+
             return $this->successResponse("details", $student->email);
         } catch (\Exception $e) {
             Log::error("Failed to update student's email address. " . $e->getMessage() . ".\n");
@@ -1007,12 +1120,16 @@ class AccountController extends Controller
             'password_confirmation' => 'bail|required',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -1037,7 +1154,9 @@ class AccountController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -1047,7 +1166,10 @@ class AccountController extends Controller
 
             $student->save();
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated student " . Str::ucfirst($student->first_name) . " " . Str::ucfirst($student->last_name) . "'s password. Updated student ID: " . $student->id . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s password. Leaving AccountController studentPasswordUpdate...\n");
+
             return $this->successResponse("details", $student->only(['first_name', 'middle_name', 'last_name']));
         } catch (\Exception $e) {
             Log::error("Failed to update student's password. " . $e->getMessage() . ".\n");
@@ -1072,6 +1194,8 @@ class AccountController extends Controller
             'last_name' => 'bail|nullable|min:2|max:200',
         ]);
 
+        $page = "/student/settings and/or /settings";
+
         try {
             $admin = $this->getRecord('administrators', $request->slug);
             $student = $this->getRecord('students', $request->slug);
@@ -1086,6 +1210,7 @@ class AccountController extends Controller
             }
 
             $user = $admin ? $admin : $student;
+            $userType = $admin ? "Admin" : "Student";
 
             if (!($user)) {
                 Log::notice("User does not exist on our system.\n");
@@ -1110,7 +1235,10 @@ class AccountController extends Controller
 
             $user->save();
 
+            $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated their name. ".$userType." ID: ".$user->id.".\n";
+            $this->logResponses(null, null, $message, $page);
             Log::info("Successfully updated authenticated user ID " . $user->id . "'s name. Leaving AccountController nameUpdate...\n");
+
             return $this->successResponse("details", $user->only(['first_name', 'middle_name', 'last_name']));
         } catch (\Exception $e) {
             Log::error("Failed to update authenticated user's name. " . $e->getMessage() . ".\n");
@@ -1129,6 +1257,8 @@ class AccountController extends Controller
                 'type' => 'default',
             ]));
         }
+
+        $page = "/student/settings and/or /settings";
 
         $admin = $this->getRecord('administrators', $request->slug);
         $student = $this->getRecord('students', $request->slug);
@@ -1153,6 +1283,7 @@ class AccountController extends Controller
         }
 
         $dataModel = $admin ? "administrators" : "students";
+        $userType = $admin ? "Admin" : "Student";
 
         $this->validate($request, [
             'email' => [
@@ -1177,7 +1308,10 @@ class AccountController extends Controller
 
             $user->save();
 
+            $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated their email address to ".$user->email.". ".$userType." ID: " . $user->id . ".\n";
+            $this->logResponses(null, null, $message, $page);
             Log::info("Successfully updated authenticated user ID " . $user->id . "'s email address. Leaving AccountController emailUpdate...\n");
+            
             return $this->successResponse("details", $user->email);
         } catch (\Exception $e) {
             Log::error("Failed to update authenticated user's email address. " . $e->getMessage() . ".\n");
@@ -1201,6 +1335,8 @@ class AccountController extends Controller
             'password_confirmation' => 'bail|required',
         ]);
 
+        $page = "/student/settings and/or /settings";
+
         try {            
             $admin = $this->getRecord('administrators', $request->slug);
             $student = $this->getRecord('students', $request->slug);
@@ -1215,6 +1351,7 @@ class AccountController extends Controller
             }
 
             $user = $admin ? $admin : $student;
+            $userType = $admin ? "Admin" : "Student";
 
             if (!($user)) {
                 Log::notice("User does not exist on our system.\n");
@@ -1244,11 +1381,13 @@ class AccountController extends Controller
 
             $user->save();
 
-            Log::info("Successfully updated authenticated user ID " . $user->id . "'s password. Leaving AccountController passwordUpdate...\n");
-
             // revoke all tokens and re-issue a new one
             $user->tokens()->delete();
             $token = $user->createToken('auth_admin_token')->plainTextToken;
+
+            $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated their password. ".$userType." ID: " . $user->id . ".\n";
+            $this->logResponses(null, null, $message, $page);
+            Log::info("Successfully updated authenticated user ID " . $user->id . "'s password. Leaving AccountController passwordUpdate...\n");
 
             return $this->successResponse("details", [
                 'token' => $token,

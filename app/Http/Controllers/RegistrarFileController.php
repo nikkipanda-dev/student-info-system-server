@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Administrator;
 use App\Models\StudentFile;
 use App\Models\StudentRegistrarFile;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Traits\ResponseTrait;
 use App\Traits\RecordTrait;
@@ -105,12 +106,16 @@ class RegistrarFileController extends Controller
             'status' => 'bail|required|in:pending,verified',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -135,7 +140,9 @@ class RegistrarFileController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -264,7 +271,10 @@ class RegistrarFileController extends Controller
             $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
             $newRegistrarFile = $this->unsetFromArray($newRegistrarFile, $keys);
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " created a new registrar file for student number" . $student->student_number . ". New registrar file slug: " . $newRegistrarFile['slug'] . ".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully stored student ID " . $student->id . "'s registrar file. Leaving RegistrarFileController studentRegistrarFileStore...\n");
+
             return $this->successResponse("details", $newRegistrarFile);
         } catch (\Exception $e) {
             Log::error("Failed to store student's registrar files. " . $e->getMessage() . ".\n");
@@ -286,12 +296,16 @@ class RegistrarFileController extends Controller
             'status' => 'bail|required|in:pending,verified',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -316,7 +330,9 @@ class RegistrarFileController extends Controller
             }
 
             if (!($user->is_admin)) {
-                Log::error("User is not flagged as an admin.\n");
+                $message = "User " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as an admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -472,7 +488,10 @@ class RegistrarFileController extends Controller
             $keys = ['id', 'updated_at', 'deleted_at', 'administrator_id', 'student_id', 'student_files'];
             $registrarFile = $this->unsetFromArray($registrarFile, $keys);
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " updated a registrar file for student number" . $student->student_number . ". Registrar file slug: " . $registrarFile['slug'] .".\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully updated student ID " . $student->id . "'s registrar file. Leaving RegistrarFileController studentRegistrarFileUpdate...\n");
+
             return $this->successResponse("details", [
                 'description' => $registrarFile['description'],
                 'status' => $registrarFile['status'],
@@ -495,12 +514,16 @@ class RegistrarFileController extends Controller
             'slug' => 'bail|required|exists:student_registrar_files',
         ]);
 
+        $page = "/student";
+
         try {
             $user = Administrator::where('email', $request->auth_email)->first();
             $student = $this->getRecord('students', $request->student_slug);
 
             if (!($user)) {
-                Log::error("User does not exist on our system.\n");
+                $message = "Administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
                     'content' => 'administrator',
@@ -525,7 +548,9 @@ class RegistrarFileController extends Controller
             }
 
             if (!($user->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as a super admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));
@@ -557,10 +582,11 @@ class RegistrarFileController extends Controller
                     $file->delete();
 
                     if (StudentFile::find($originalFile['id'])) {
-                        Log::error("Failed to soft delete student's registrar file ID " . $originalFile['id'] . ". Student registrar file still exists.\n");
                         $errorText = $this->getPredefinedResponse([
                             'type' => 'default',
                         ]);
+
+                        throw new Exception("Failed to soft delete student's registrar file ID " . $originalFile['id'] . ". Student registrar file still exists.\n");
 
                         break;
                     }
@@ -606,7 +632,10 @@ class RegistrarFileController extends Controller
                 return $this->errorResponse($transactionResponse['error_text']);
             }
 
+            $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " deleted a registrar file from student number" . $student->student_number . ". Registrar file slug: " . $transactionResponse['registrar_file']['slug'] . "\n";
+            $this->logResponses($user->id, $student->id, $message, $page);
             Log::info("Successfully soft deleted student ID " . $student->id . "'s registrar file. Leaving RegistrarFileController studentRegistrarFileDestroy...\n");
+
             return $this->successResponse("details", [
                 'slug' => $transactionResponse['registrar_file']['slug'],
             ]);
