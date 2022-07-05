@@ -62,10 +62,12 @@ class DashboardController extends Controller
                 ],
                 'students' => [
                     "count" => 0,
-                    "is_enrolled_count" => 0,
-                    "is_dropped_count" => 0,
-                    "is_expelled_count" => 0,
-                    "is_graduate_count" => 0,
+                    "by_enrollment_status_count" => [
+                        "enrolled" => 0,
+                        "dropped" => 0,
+                        "expelled" => 0,
+                        "graduate" => 0,
+                    ],
                     "by_year_level_count" => [
                         1 => 0,
                         2 => 0,
@@ -91,11 +93,11 @@ class DashboardController extends Controller
                 foreach ($students as $student) {
                     ++$formattedArr['students']['count'];
 
-                    $enrollmentCategories = ["is_enrolled", "is_dropped", "is_expelled", "is_graduate"];
+                    $enrollmentCategories = ["enrolled", "dropped", "expelled", "graduate"];
                     $courses = ["bsit", "bscs", "bsis", "bsba"];
 
                     for ($i = 0; $i < count($enrollmentCategories); $i++) {
-                        ($student->{$enrollmentCategories[$i]}) && ++$formattedArr['students'][$enrollmentCategories[$i]."_count"];
+                        ($student->{"is_".$enrollmentCategories[$i]}) && ++$formattedArr['students']['by_enrollment_status_count'][$enrollmentCategories[$i]];
                     }
 
                     for ($i = 0; $i <= 3; $i++) {
