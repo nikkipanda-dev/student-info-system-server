@@ -30,15 +30,19 @@ class AccountController extends Controller
             $user = Administrator::where('email', $request->auth_email)->first();
 
             if (!($user)) {
-                Log::error("Administrator does not exist on our system.\n");
+                $message = "Super administrator does not exist on our system. Provided email " . $request->auth_email . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'not-found',
-                    'content' => 'user',
+                    'content' => 'super administrator',
                 ]));
             }
 
             if (!($user->is_super_admin)) {
-                Log::error("User is not flagged as a super admin.\n");
+                $message = "Administrator " . Str::ucfirst($user->first_name) . " " . Str::ucfirst($user->last_name) . " is not flagged as a super admin. ID: " . $user->id . ".\n";
+                Log::error($message);
+
                 return $this->errorResponse($this->getPredefinedResponse([
                     'type' => 'unauth',
                 ]));

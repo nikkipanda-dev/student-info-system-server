@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CorController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\PaymentController;
@@ -45,6 +46,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post("/name-update", [AccountController::class, "nameUpdate"]);
     Route::post("/email-update", [AccountController::class, "emailUpdate"]);
     Route::post("/password-update", [AccountController::class, "passwordUpdate"]);
+
+    // Dashboard
+    Route::get("/users-count", [DashboardController::class, "usersCountGet"]);
+    Route::get("/payments-count", [DashboardController::class, "paymentsCountGet"]);
+    Route::get("/recent-activities-count", [DashboardController::class, "recentActivitiesGet"]);
 
     // Student
     Route::get("/students", [AccountController::class, "studentGetAll"]);
