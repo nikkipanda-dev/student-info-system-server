@@ -4,15 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Administrator;
 use App\Models\Student;
+use App\Models\StudentFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use App\Traits\ResponseTrait;
+use App\Traits\RecordTrait;
 
 class AuthController extends Controller
 {
-    use ResponseTrait;
+    use ResponseTrait, RecordTrait;
 
     public function authenticate(Request $request) {
         Log::info("Entering AuthController authenticate...\n");
@@ -120,6 +122,12 @@ class AuthController extends Controller
                     'type' => 'unauth',
                 ]));
             }
+
+            $file = StudentFile::where('student_id', $user->id)
+                               ->where('type', "display_photo")
+                               ->first();
+
+            $user['display_photo'] = $file ? $this->getFileUrl("digital_ocean", $file->path) : null;
 
             $token = $user->createToken("auth_student_token")->plainTextToken;
 
