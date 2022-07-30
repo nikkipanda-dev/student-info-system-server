@@ -38,7 +38,7 @@ class FileController extends Controller
                 return "Student does not exist.";
             }
 
-            if (!($user->is_super_admin) || !($user->is_admin)) {
+            if (!($user->is_admin)) {
                 Log::error("User is neither flagged as a super admin nor admin.\n");
                 return "Unauthorized action.";
             }
